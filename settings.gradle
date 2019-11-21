@@ -1,2 +1,4 @@
+rootProject.name = 'simplenet'
+
 include 'simplenet-example'
 include 'simplenet'
