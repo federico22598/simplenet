@@ -69,7 +69,7 @@ public final class PacketReader {
 
                     bufCapBuf.clear();
 
-                    buf = ByteBuffer.allocateDirect(cap);
+                    buf = ByteBuffer.allocate(cap);
                 }
 
                 if (!repeatBufReadCompleted) {
