@@ -1,5 +1,7 @@
 package com.github.idkp.simplenet.example;
 
+import com.github.idkp.simplenet.*;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;

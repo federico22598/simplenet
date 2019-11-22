@@ -5,12 +5,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public final class StandardPacketHandler implements PacketHandler {
     private final Map<Short, PayloadEncoder<?>> payloadEncoders = new HashMap<>();
     private final Map<Short, PayloadDecoder<?>> payloadDecoders = new HashMap<>();
     private final Map<String, Short> packetNameToPacketIdMap = new HashMap<>();
     private final Map<Short, Set<PacketReceiveListenerData<Object>>> packetReceiveListeners = new HashMap<>();
+    private final Map<Short, Supplier<?>> payloadFactories = new HashMap<>();
 
     @Override
     public <T> void sendPacket(String name, T payload, PacketWriter writer) {
@@ -36,6 +38,38 @@ public final class StandardPacketHandler implements PacketHandler {
 
     @Override
     public void sendPacket(String name, PacketWriter writer) {
+        Short id = packetNameToPacketIdMap.get(name);
+
+        if (id == null) {
+            sendPayloadlessPacket(name, writer);
+
+            return;
+        }
+
+        Supplier<?> payloadFactory = payloadFactories.get(id);
+
+        if (payloadFactory == null) {
+            sendPayloadlessPacket(name, writer);
+
+            return;
+        }
+
+        PayloadEncoder encoder = payloadEncoders.get(id);
+
+        if (encoder == null) {
+            throw new NoEncoderForPacketException();
+        }
+
+        Object payload = payloadFactory.get();
+        PacketWriteData writeData = new PacketWriteData(id);
+
+        //noinspection unchecked
+        encoder.encode(payload, new StandardPacketBufferWriter(writeData));
+        writer.queueWrData(writeData);
+        writer.setReadyForChannelWrite();
+    }
+
+    private void sendPayloadlessPacket(String name, PacketWriter writer) {
         writer.queueWrData(new PacketWriteData(computePacketIdIfAbsent(name)));
         writer.setReadyForChannelWrite();
     }
@@ -66,7 +100,7 @@ public final class StandardPacketHandler implements PacketHandler {
     }
 
     @Override
-    public void registerDataPacket(String name) {
+    public void makePayloadlessPacketReceivable(String name) {
         computePacketIdIfAbsent(name);
     }
 
@@ -78,6 +112,11 @@ public final class StandardPacketHandler implements PacketHandler {
     @Override
     public void setDecoder(String packetName, PayloadDecoder<?> decoder) {
         payloadDecoders.put(computePacketIdIfAbsent(packetName), decoder);
+    }
+
+    @Override
+    public void setPayloadFactory(String packetName, Supplier<?> factory) {
+        payloadFactories.put(computePacketIdIfAbsent(packetName), factory);
     }
 
     private short computePacketIdIfAbsent(String packetName) {

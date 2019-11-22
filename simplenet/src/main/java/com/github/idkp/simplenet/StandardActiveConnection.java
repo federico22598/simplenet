@@ -3,6 +3,7 @@ package com.github.idkp.simplenet;
 import java.io.IOException;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.function.Supplier;
 
 public final class StandardActiveConnection implements ActiveConnection {
     private final PacketHandler packetHandler;
@@ -28,8 +29,8 @@ public final class StandardActiveConnection implements ActiveConnection {
     }
 
     @Override
-    public void registerDataPacket(String name) {
-        packetHandler.registerDataPacket(name);
+    public void makePayloadlessPacketReceivable(String name) {
+        packetHandler.makePayloadlessPacketReceivable(name);
     }
 
     @Override
@@ -40,6 +41,11 @@ public final class StandardActiveConnection implements ActiveConnection {
     @Override
     public void setPacketPayloadDecoder(String packetName, PayloadDecoder<?> decoder) {
         packetHandler.setDecoder(packetName, decoder);
+    }
+
+    @Override
+    public void setPacketPayloadFactory(String packetName, Supplier<?> factory) {
+        packetHandler.setPayloadFactory(packetName, factory);
     }
 
     @Override

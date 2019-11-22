@@ -8,5 +8,5 @@ version '0.1.0'
 sourceCompatibility = 1.8
 
 dependencies {
-    compile project(':')
+    compile project(':simplenet')
 }
