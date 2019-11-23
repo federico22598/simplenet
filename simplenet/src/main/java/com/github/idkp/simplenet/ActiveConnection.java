@@ -23,5 +23,9 @@ public interface ActiveConnection extends Closeable {
 
     boolean removePacketReceiveListeners(String packetName);
 
+    boolean hasPacketReceiveListener(String packetName, String name);
+
+    boolean hasPacketReceiveListeners(String packetName);
+
     SocketChannel getChannel();
 }

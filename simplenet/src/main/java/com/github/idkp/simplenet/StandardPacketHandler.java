@@ -2,16 +2,14 @@ package com.github.idkp.simplenet;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Supplier;
 
 public final class StandardPacketHandler implements PacketHandler {
     private final Map<Short, PayloadEncoder<?>> payloadEncoders = new HashMap<>();
     private final Map<Short, PayloadDecoder<?>> payloadDecoders = new HashMap<>();
     private final Map<String, Short> packetNameToPacketIdMap = new HashMap<>();
-    private final Map<Short, Set<PacketReceiveListenerData<Object>>> packetReceiveListeners = new HashMap<>();
+    private final Map<Short, Map<String, PacketReceiveListener<Object>>> packetReceiveListeners = new HashMap<>();
     private final Map<Short, Supplier<?>> payloadFactories = new HashMap<>();
 
     @Override
@@ -87,11 +85,11 @@ public final class StandardPacketHandler implements PacketHandler {
         ReadResult payloadReadResult = reader.readPayload();
 
         if (payloadReadResult == ReadResult.COMPLETE) {
-            Set<PacketReceiveListenerData<Object>> listenerHolders = packetReceiveListeners.get(reader.getPacketId());
+            Map<String, PacketReceiveListener<Object>> listeners = packetReceiveListeners.get(reader.getPacketId());
 
-            if (listenerHolders != null) {
-                for (PacketReceiveListenerData<Object> listenerHolder : listenerHolders) {
-                    listenerHolder.listener.accept(reader.getPayload());
+            if (listeners != null) {
+                for (PacketReceiveListener<Object> listener : listeners.values()) {
+                    listener.accept(reader.getPayload());
                 }
             }
         }
@@ -131,8 +129,7 @@ public final class StandardPacketHandler implements PacketHandler {
             throw new UnknownPacketException();
         }
 
-        return packetReceiveListeners.computeIfAbsent(packetId, i -> new HashSet<>()).add(new PacketReceiveListenerData<>(name,
-                (PacketReceiveListener<Object>) listener));
+        return packetReceiveListeners.computeIfAbsent(packetId, i -> new HashMap<>()).putIfAbsent(name, (PacketReceiveListener<Object>) listener) == null;
     }
 
     @Override
@@ -143,13 +140,13 @@ public final class StandardPacketHandler implements PacketHandler {
             throw new UnknownPacketException();
         }
 
-        Set<PacketReceiveListenerData<Object>> listenerDataList = packetReceiveListeners.get(packetId);
+        Map<String, PacketReceiveListener<Object>> listeners = packetReceiveListeners.get(packetId);
 
-        if (listenerDataList == null) {
+        if (listeners == null) {
             return false;
         }
 
-        return listenerDataList.removeIf(listenerData -> listenerData.name.equals(name));
+        return listeners.remove(name) != null;
     }
 
     @Override
@@ -163,35 +160,31 @@ public final class StandardPacketHandler implements PacketHandler {
         return packetReceiveListeners.remove(packetId) != null;
     }
 
-    private static final class PacketReceiveListenerData<T> {
-        private final String name;
-        private final PacketReceiveListener<T> listener;
+    @Override
+    public boolean hasPacketReceiveListener(String packetName, String name) {
+        Short packetId = packetNameToPacketIdMap.get(packetName);
 
-        private PacketReceiveListenerData(String name, PacketReceiveListener<T> listener) {
-            this.name = name;
-            this.listener = listener;
+        if (packetId == null) {
+            throw new UnknownPacketException();
         }
 
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == this) {
-                return true;
-            }
+        Map<String, PacketReceiveListener<Object>> listeners = packetReceiveListeners.get(packetId);
 
-            if (obj == null) {
-                return false;
-            }
-
-            if (obj.getClass() != PacketReceiveListenerData.class) {
-                return false;
-            }
-
-            return ((PacketReceiveListenerData<?>) obj).name.equals(name);
+        if (listeners == null) {
+            return false;
         }
 
-        @Override
-        public int hashCode() {
-            return 31 + name.hashCode();
+        return listeners.containsKey(name);
+    }
+
+    @Override
+    public boolean hasPacketReceiveListeners(String packetName) {
+        Short packetId = packetNameToPacketIdMap.get(packetName);
+
+        if (packetId == null) {
+            throw new UnknownPacketException();
         }
+
+        return packetReceiveListeners.containsKey(packetId);
     }
 }

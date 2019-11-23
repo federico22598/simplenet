@@ -23,4 +23,8 @@ public interface PacketHandler {
     boolean removePacketReceiveListener(String packetName, String name);
 
     boolean removePacketReceiveListeners(String packetName);
+
+    boolean hasPacketReceiveListener(String packetName, String name);
+
+    boolean hasPacketReceiveListeners(String packetName);
 }

@@ -64,6 +64,16 @@ public final class StandardActiveConnection implements ActiveConnection {
     }
 
     @Override
+    public boolean hasPacketReceiveListener(String packetName, String name) {
+        return packetHandler.hasPacketReceiveListener(packetName, name);
+    }
+
+    @Override
+    public boolean hasPacketReceiveListeners(String packetName) {
+        return packetHandler.hasPacketReceiveListeners(packetName);
+    }
+
+    @Override
     public SocketChannel getChannel() {
         return channel;
     }
