@@ -100,7 +100,7 @@ public final class StandardPacketHandler implements PacketHandler {
     }
 
     @Override
-    public void makePayloadlessPacketReceivable(String name) {
+    public void registerPayloadlessPacket(String name) {
         computePacketIdIfAbsent(name);
     }
 

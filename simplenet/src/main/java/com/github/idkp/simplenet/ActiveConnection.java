@@ -9,7 +9,7 @@ public interface ActiveConnection extends Closeable {
 
     void sendPacket(String name);
 
-    void makePayloadlessPacketReceivable(String name);
+    void registerPayloadlessPacket(String name);
 
     void setPacketPayloadEncoder(String packetName, PayloadEncoder<?> encoder);
 

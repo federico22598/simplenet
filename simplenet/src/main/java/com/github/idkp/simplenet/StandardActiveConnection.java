@@ -29,8 +29,8 @@ public final class StandardActiveConnection implements ActiveConnection {
     }
 
     @Override
-    public void makePayloadlessPacketReceivable(String name) {
-        packetHandler.makePayloadlessPacketReceivable(name);
+    public void registerPayloadlessPacket(String name) {
+        packetHandler.registerPayloadlessPacket(name);
     }
 
     @Override
