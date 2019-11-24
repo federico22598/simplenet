@@ -18,8 +18,8 @@ public class StandardServer implements Server {
 
     private final ConnectionReviewer connectionReviewer;
     private final Map<SocketAddress, ActiveConnection> activeConnections = new HashMap<>();
-    private final ServerErrorHandler errorHandler;
-    private final Consumer<ConnectionAttemptResult> connectionAcceptAttemptHandler;
+    private ServerErrorHandler errorHandler;
+    private Consumer<ConnectionAttemptResult> connectionAcceptAttemptHandler;
 
     private Selector selector;
     private ServerSocketChannel channel;
@@ -210,6 +210,16 @@ public class StandardServer implements Server {
     @Override
     public ActiveConnection getConnection(SocketAddress address) {
         return activeConnections.get(address);
+    }
+
+    @Override
+    public void setConnectionAcceptAttemptHandler(Consumer<ConnectionAttemptResult> handler) {
+        connectionAcceptAttemptHandler = handler;
+    }
+
+    @Override
+    public void setErrorHandler(ServerErrorHandler handler) {
+        errorHandler = handler;
     }
 
     @Override

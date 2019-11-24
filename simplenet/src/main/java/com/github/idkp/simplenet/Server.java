@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
+import java.util.function.Consumer;
 
 public interface Server extends Closeable {
     int getPort();
@@ -24,4 +25,8 @@ public interface Server extends Closeable {
     Selector getSelector();
 
     ServerSocketChannel getChannel();
+
+    void setConnectionAcceptAttemptHandler(Consumer<ConnectionAttemptResult> handler);
+
+    void setErrorHandler(ServerErrorHandler handler);
 }

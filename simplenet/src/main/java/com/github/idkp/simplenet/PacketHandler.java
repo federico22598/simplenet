@@ -10,7 +10,9 @@ public interface PacketHandler {
 
     ReadResult attemptToReadPacket(PacketReader reader) throws IOException;
 
-    void registerPayloadlessPacket(String name);
+    void registerPayloadlessPacket(/*int id, */String name);
+
+    //void registerPacket(int id, String name);
 
     void setEncoder(String packetName, PayloadEncoder<?> encoder);
 
