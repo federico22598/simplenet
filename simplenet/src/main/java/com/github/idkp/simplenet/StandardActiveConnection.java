@@ -5,16 +5,14 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.function.Supplier;
 
-public final class StandardActiveConnection implements ActiveConnection {
+public class StandardActiveConnection implements ActiveConnection {
     private final PacketHandler packetHandler;
     private final SocketChannel channel;
-    private final Selector selector;
     private final PacketWriter writer;
 
-    public StandardActiveConnection(PacketHandler packetHandler, SocketChannel channel, Selector selector, PacketWriter writer) {
+    public StandardActiveConnection(PacketHandler packetHandler, SocketChannel channel, PacketWriter writer) {
         this.packetHandler = packetHandler;
         this.channel = channel;
-        this.selector = selector;
         this.writer = writer;
     }
 
@@ -80,10 +78,6 @@ public final class StandardActiveConnection implements ActiveConnection {
 
     @Override
     public void close() throws IOException {
-        try {
-            selector.close();
-        } finally {
-            channel.close();
-        }
+        channel.close();
     }
 }

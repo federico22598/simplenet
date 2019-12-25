@@ -8,6 +8,7 @@ import java.util.Iterator;
 public class BlockingClient implements Client {
     private final ClientErrorHandler errorHandler;
     private final PacketHandler packetHandler;
+    private Selector selector;
     private ActiveConnection connection;
 
     public BlockingClient(ClientErrorHandler errorHandler, PacketHandler packetHandler) {
@@ -32,14 +33,12 @@ public class BlockingClient implements Client {
         SocketChannel channel = SocketChannel.open(address);
 
         channel.configureBlocking(false);
-
-        Selector selector = Selector.open();
-
+        selector = Selector.open();
         channel.register(selector, SelectionKey.OP_READ);
 
         PacketWriter bufWriter = new PacketWriter(channel, selector);
         PacketReader bufReader = new PacketReader(channel);
-        connection = new StandardActiveConnection(packetHandler, channel, selector, bufWriter);
+        connection = new StandardActiveConnection(packetHandler, channel, bufWriter);
 
         finishListener.run();
 
@@ -94,5 +93,14 @@ public class BlockingClient implements Client {
     @Override
     public boolean isConnected() {
         return connection != null;
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            connection.close();
+        } finally {
+            selector.close();
+        }
     }
 }

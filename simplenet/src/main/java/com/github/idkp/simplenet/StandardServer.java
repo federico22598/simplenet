@@ -90,19 +90,17 @@ public class StandardServer implements Server {
                 while (selectedKeys.hasNext()) {
                     SelectionKey key = selectedKeys.next();
 
+                    if (key.isValid()) {
+                        if (key.isAcceptable()) {
+                            processAcceptableKey();
+                        } else if (key.isWritable()) {
+                            processWritableKey(key);
+                        } else if (key.isReadable()) {
+                            processReadableKey(key);
+                        }
+                    }
+
                     selectedKeys.remove();
-
-                    if (!key.isValid()) {
-                        continue;
-                    }
-
-                    if (key.isAcceptable()) {
-                        processAcceptableKey();
-                    } else if (key.isWritable()) {
-                        processWritableKey(key);
-                    } else if (key.isReadable()) {
-                        processReadableKey(key);
-                    }
                 }
             }
         }, "Server Client Accept Thread");
@@ -195,10 +193,17 @@ public class StandardServer implements Server {
             return;
         }
 
+        this.selectorSelectThread.interrupt();
+        this.selectorSelectThread = null;
+
         try {
-            this.channel.close();
+            this.selector.close();
         } finally {
-            this.channel = null;
+            try {
+                this.channel.close();
+            } finally {
+                this.channel = null;
+            }
         }
     }
 
@@ -224,11 +229,6 @@ public class StandardServer implements Server {
 
     @Override
     public void close() throws IOException {
-        if (this.selectorSelectThread != null) {
-            this.selectorSelectThread.interrupt();
-            this.selectorSelectThread = null;
-        }
-
         this.unbind();
 
         LOGGER.log(Level.INFO, "Server {0} closed.", this.toString());

@@ -25,7 +25,7 @@ public final class ClosingClientErrorHandler implements ClientErrorHandler {
 
     private static void closeQuietly(Client client) {
         try {
-            client.getConnection().close();
+            client.close();
         } catch (IOException ignored) {
         }
     }

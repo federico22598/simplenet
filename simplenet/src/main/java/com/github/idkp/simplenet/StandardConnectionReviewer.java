@@ -35,7 +35,7 @@ public class StandardConnectionReviewer implements ConnectionReviewer {
         PacketHandler packetHandler = new StandardPacketHandler();
         Selector selector = server.getSelector();
         PacketWriter packetWriter = new PacketWriter(channel, selector);
-        ActiveConnection connection = new StandardActiveConnection(packetHandler, channel, selector, packetWriter);
+        ActiveConnection connection = new StandardActiveConnection(packetHandler, channel, packetWriter);
         PacketReader packetReader = new PacketReader(channel);
 
         try {
