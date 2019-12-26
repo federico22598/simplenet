@@ -45,7 +45,7 @@ public class BlockingClient implements Client {
         while (true) {
             try {
                 selector.select();
-            } catch (IOException e) {
+            } catch (IOException | ClosedSelectorException e) {
                 errorHandler.handle("sel", this, e);
 
                 break;
@@ -97,6 +97,10 @@ public class BlockingClient implements Client {
 
     @Override
     public void close() throws IOException {
+        if (!isConnected()) {
+            return;
+        }
+
         try {
             connection.close();
         } finally {
