@@ -4,24 +4,25 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.*;
 import java.util.Iterator;
+import java.util.function.Supplier;
 
 public class BlockingClient implements Client {
     private final ClientErrorHandler errorHandler;
-    private final PacketHandler packetHandler;
+    private final Supplier<PacketHandler> packetHandlerSupplier;
     private Selector selector;
     private ActiveConnection connection;
 
-    public BlockingClient(ClientErrorHandler errorHandler, PacketHandler packetHandler) {
+    public BlockingClient(ClientErrorHandler errorHandler, Supplier<PacketHandler> packetHandlerSupplier) {
         this.errorHandler = errorHandler;
-        this.packetHandler = packetHandler;
+        this.packetHandlerSupplier = packetHandlerSupplier;
     }
 
-    public BlockingClient(PacketHandler packetHandler) {
-        this(new ClosingClientErrorHandler(false), packetHandler);
+    public BlockingClient(Supplier<PacketHandler> packetHandlerSupplier) {
+        this(new ClosingClientErrorHandler(false), packetHandlerSupplier);
     }
 
     public BlockingClient() {
-        this(new StandardPacketHandler());
+        this(StandardPacketHandler::new);
     }
 
     @Override
@@ -38,6 +39,7 @@ public class BlockingClient implements Client {
 
         PacketWriter bufWriter = new PacketWriter(channel, selector);
         PacketReader bufReader = new PacketReader(channel);
+        PacketHandler packetHandler = packetHandlerSupplier.get();
         connection = new StandardActiveConnection(packetHandler, channel, bufWriter);
 
         finishListener.run();
