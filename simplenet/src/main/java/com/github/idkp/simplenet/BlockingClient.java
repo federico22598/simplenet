@@ -100,7 +100,11 @@ public class BlockingClient implements Client {
         try {
             connection.close();
         } finally {
-            selector.close();
+            try {
+                selector.close();
+            } finally {
+                connection = null;
+            }
         }
     }
 }
