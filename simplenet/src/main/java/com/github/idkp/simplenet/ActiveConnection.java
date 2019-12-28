@@ -17,15 +17,15 @@ public interface ActiveConnection extends Closeable {
 
     void setPacketPayloadFactory(String packetName, Supplier<?> factory);
 
-    <T> boolean addPacketReceiveListener(String packetName, String name, PacketReceiveListener<T> listener);
+    <T> boolean addPacketListener(String packetName, String name, PacketListener<T> listener);
 
-    boolean removePacketReceiveListener(String packetName, String name);
+    boolean removePacketListener(String packetName, String name);
 
-    boolean removePacketReceiveListeners(String packetName);
+    boolean removePacketListeners(String packetName);
 
-    boolean hasPacketReceiveListener(String packetName, String name);
+    boolean hasPacketListener(String packetName, String name);
 
-    boolean hasPacketReceiveListeners(String packetName);
+    boolean hasPacketListeners(String packetName);
 
     SocketChannel getChannel();
 }

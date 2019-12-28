@@ -38,11 +38,11 @@ public final class PacketReader {
         headerBuf.flip();
 
         packetId = headerBuf.getShort();
+        decoder = payloadDecoderSupplier.apply(packetId);
         bufCount = headerBuf.getShort();
 
         headerBuf.clear();
 
-        decoder = payloadDecoderSupplier.apply(packetId);
         lastBufIdx = 0;
         payload = null;
 

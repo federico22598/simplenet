@@ -9,7 +9,7 @@ public final class StandardPacketHandler implements PacketHandler {
     private final Map<Short, PayloadEncoder<?>> payloadEncoders = new HashMap<>();
     private final Map<Short, PayloadDecoder<?>> payloadDecoders = new HashMap<>();
     private final Map<String, Short> packetNameToPacketIdMap = new HashMap<>();
-    private final Map<Short, Map<String, PacketReceiveListener<Object>>> packetReceiveListeners = new HashMap<>();
+    private final Map<Short, Map<String, PacketListener<Object>>> PacketListeners = new HashMap<>();
     private final Map<Short, Supplier<?>> payloadFactories = new HashMap<>();
 
     @Override
@@ -82,19 +82,19 @@ public final class StandardPacketHandler implements PacketHandler {
             }
         }
 
-        ReadResult payloadReadResult = reader.readPayload();
+        ReadResult readResult = reader.readPayload();
 
-        if (payloadReadResult == ReadResult.COMPLETE) {
-            Map<String, PacketReceiveListener<Object>> listeners = packetReceiveListeners.get(reader.getPacketId());
+        if (readResult == ReadResult.COMPLETE) {
+            Map<String, PacketListener<Object>> listeners = PacketListeners.get(reader.getPacketId());
 
             if (listeners != null) {
-                for (PacketReceiveListener<Object> listener : listeners.values()) {
+                for (PacketListener<Object> listener : listeners.values()) {
                     listener.accept(reader.getPayload());
                 }
             }
         }
 
-        return payloadReadResult;
+        return readResult;
     }
 
     @Override
@@ -122,25 +122,25 @@ public final class StandardPacketHandler implements PacketHandler {
     }
 
     @Override
-    public <T> boolean addPacketReceiveListener(String packetName, String name, PacketReceiveListener<T> listener) {
+    public <T> boolean addPacketListener(String packetName, String name, PacketListener<T> listener) {
         Short packetId = packetNameToPacketIdMap.get(packetName);
 
         if (packetId == null) {
             throw new UnknownPacketException();
         }
 
-        return packetReceiveListeners.computeIfAbsent(packetId, i -> new HashMap<>()).putIfAbsent(name, (PacketReceiveListener<Object>) listener) == null;
+        return PacketListeners.computeIfAbsent(packetId, i -> new HashMap<>()).putIfAbsent(name, (PacketListener<Object>) listener) == null;
     }
 
     @Override
-    public boolean removePacketReceiveListener(String packetName, String name) {
+    public boolean removePacketListener(String packetName, String name) {
         Short packetId = packetNameToPacketIdMap.get(packetName);
 
         if (packetId == null) {
             throw new UnknownPacketException();
         }
 
-        Map<String, PacketReceiveListener<Object>> listeners = packetReceiveListeners.get(packetId);
+        Map<String, PacketListener<Object>> listeners = PacketListeners.get(packetId);
 
         if (listeners == null) {
             return false;
@@ -150,25 +150,25 @@ public final class StandardPacketHandler implements PacketHandler {
     }
 
     @Override
-    public boolean removePacketReceiveListeners(String packetName) {
+    public boolean removePacketListeners(String packetName) {
         Short packetId = packetNameToPacketIdMap.get(packetName);
 
         if (packetId == null) {
             throw new UnknownPacketException();
         }
 
-        return packetReceiveListeners.remove(packetId) != null;
+        return PacketListeners.remove(packetId) != null;
     }
 
     @Override
-    public boolean hasPacketReceiveListener(String packetName, String name) {
+    public boolean hasPacketListener(String packetName, String name) {
         Short packetId = packetNameToPacketIdMap.get(packetName);
 
         if (packetId == null) {
             throw new UnknownPacketException();
         }
 
-        Map<String, PacketReceiveListener<Object>> listeners = packetReceiveListeners.get(packetId);
+        Map<String, PacketListener<Object>> listeners = PacketListeners.get(packetId);
 
         if (listeners == null) {
             return false;
@@ -178,13 +178,13 @@ public final class StandardPacketHandler implements PacketHandler {
     }
 
     @Override
-    public boolean hasPacketReceiveListeners(String packetName) {
+    public boolean hasPacketListeners(String packetName) {
         Short packetId = packetNameToPacketIdMap.get(packetName);
 
         if (packetId == null) {
             throw new UnknownPacketException();
         }
 
-        return packetReceiveListeners.containsKey(packetId);
+        return PacketListeners.containsKey(packetId);
     }
 }

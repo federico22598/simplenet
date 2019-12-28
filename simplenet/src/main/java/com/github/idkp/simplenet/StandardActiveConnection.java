@@ -47,28 +47,28 @@ public class StandardActiveConnection implements ActiveConnection {
     }
 
     @Override
-    public <T> boolean addPacketReceiveListener(String packetName, String name, PacketReceiveListener<T> listener) {
-        return packetHandler.addPacketReceiveListener(packetName, name, listener);
+    public <T> boolean addPacketListener(String packetName, String name, PacketListener<T> listener) {
+        return packetHandler.addPacketListener(packetName, name, listener);
     }
 
     @Override
-    public boolean removePacketReceiveListener(String packetName, String name) {
-        return packetHandler.removePacketReceiveListener(packetName, name);
+    public boolean removePacketListener(String packetName, String name) {
+        return packetHandler.removePacketListener(packetName, name);
     }
 
     @Override
-    public boolean removePacketReceiveListeners(String packetName) {
-        return packetHandler.removePacketReceiveListeners(packetName);
+    public boolean removePacketListeners(String packetName) {
+        return packetHandler.removePacketListeners(packetName);
     }
 
     @Override
-    public boolean hasPacketReceiveListener(String packetName, String name) {
-        return packetHandler.hasPacketReceiveListener(packetName, name);
+    public boolean hasPacketListener(String packetName, String name) {
+        return packetHandler.hasPacketListener(packetName, name);
     }
 
     @Override
-    public boolean hasPacketReceiveListeners(String packetName) {
-        return packetHandler.hasPacketReceiveListeners(packetName);
+    public boolean hasPacketListeners(String packetName) {
+        return packetHandler.hasPacketListeners(packetName);
     }
 
     @Override

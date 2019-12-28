@@ -34,7 +34,7 @@ public final class Launcher {
                     ActiveConnection conn = connectionAttemptResult.getConnection();
 
                     conn.setPacketPayloadDecoder("greetings", new GreetingsPacketPayloadDecoder());
-                    conn.<String>addPacketReceiveListener("greetings", "", payload -> {
+                    conn.<String>addPacketListener("greetings", "", payload -> {
                         System.out.println(payload);
 
                         try {
