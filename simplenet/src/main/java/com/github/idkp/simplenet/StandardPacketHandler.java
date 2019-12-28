@@ -9,7 +9,7 @@ public final class StandardPacketHandler implements PacketHandler {
     private final Map<Short, PayloadEncoder<?>> payloadEncoders = new HashMap<>();
     private final Map<Short, PayloadDecoder<?>> payloadDecoders = new HashMap<>();
     private final Map<String, Short> packetNameToPacketIdMap = new HashMap<>();
-    private final Map<Short, Map<String, PacketListener<Object>>> PacketListeners = new HashMap<>();
+    private final Map<Short, Map<String, PacketListener<Object>>> packetListeners = new HashMap<>();
     private final Map<Short, Supplier<?>> payloadFactories = new HashMap<>();
 
     @Override
@@ -85,7 +85,7 @@ public final class StandardPacketHandler implements PacketHandler {
         ReadResult readResult = reader.readPayload();
 
         if (readResult == ReadResult.COMPLETE) {
-            Map<String, PacketListener<Object>> listeners = PacketListeners.get(reader.getPacketId());
+            Map<String, PacketListener<Object>> listeners = packetListeners.get(reader.getPacketId());
 
             if (listeners != null) {
                 for (PacketListener<Object> listener : listeners.values()) {
@@ -129,7 +129,7 @@ public final class StandardPacketHandler implements PacketHandler {
             throw new UnknownPacketException();
         }
 
-        return PacketListeners.computeIfAbsent(packetId, i -> new HashMap<>()).putIfAbsent(name, (PacketListener<Object>) listener) == null;
+        return packetListeners.computeIfAbsent(packetId, i -> new HashMap<>()).putIfAbsent(name, (PacketListener<Object>) listener) == null;
     }
 
     @Override
@@ -140,7 +140,7 @@ public final class StandardPacketHandler implements PacketHandler {
             throw new UnknownPacketException();
         }
 
-        Map<String, PacketListener<Object>> listeners = PacketListeners.get(packetId);
+        Map<String, PacketListener<Object>> listeners = packetListeners.get(packetId);
 
         if (listeners == null) {
             return false;
@@ -157,7 +157,7 @@ public final class StandardPacketHandler implements PacketHandler {
             throw new UnknownPacketException();
         }
 
-        return PacketListeners.remove(packetId) != null;
+        return packetListeners.remove(packetId) != null;
     }
 
     @Override
@@ -168,7 +168,7 @@ public final class StandardPacketHandler implements PacketHandler {
             throw new UnknownPacketException();
         }
 
-        Map<String, PacketListener<Object>> listeners = PacketListeners.get(packetId);
+        Map<String, PacketListener<Object>> listeners = packetListeners.get(packetId);
 
         if (listeners == null) {
             return false;
@@ -185,6 +185,6 @@ public final class StandardPacketHandler implements PacketHandler {
             throw new UnknownPacketException();
         }
 
-        return PacketListeners.containsKey(packetId);
+        return packetListeners.containsKey(packetId);
     }
 }
