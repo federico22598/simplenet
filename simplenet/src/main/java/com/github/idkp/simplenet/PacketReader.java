@@ -18,6 +18,7 @@ public final class PacketReader {
     private Object payload;
     private boolean bufReadCompleted;
     private boolean repeatBufReadCompleted;
+    private boolean active;
 
     public PacketReader(SocketChannel channel) {
         this.channel = channel;
@@ -27,11 +28,17 @@ public final class PacketReader {
     }
 
     public ReadResult readHeader(ShortFunction<PayloadDecoder> payloadDecoderSupplier) throws IOException {
+        active = true;
+
         if (channel.read(headerBuf) == -1) {
+            active = false;
+
             return ReadResult.EOF;
         }
 
         if (headerBuf.position() != headerBuf.capacity()) {
+            active = false;
+
             return ReadResult.INCOMPLETE;
         }
 
@@ -46,6 +53,10 @@ public final class PacketReader {
         lastBufIdx = 0;
         payload = null;
 
+        if (decoder == null) {
+            active = false;
+        }
+
         return ReadResult.COMPLETE;
     }
 
@@ -56,10 +67,14 @@ public final class PacketReader {
                     int bytesRead = channel.read(bufCapBuf);
 
                     if (bytesRead == -1) {
+                        active = false;
+
                         return ReadResult.EOF;
                     }
 
                     if (bufCapBuf.position() != bufCapBuf.capacity()) {
+                        active = false;
+
                         return ReadResult.INCOMPLETE;
                     }
 
@@ -83,6 +98,8 @@ public final class PacketReader {
                         repeatBufReadCompleted = true;
                         repeatBuf.flip();
                     } else {
+                        active = false;
+
                         return ReadResult.INCOMPLETE;
                     }
                 }
@@ -91,6 +108,8 @@ public final class PacketReader {
                     int bytesRead = channel.read(buf);
 
                     if (bytesRead == -1) {
+                        active = false;
+
                         return ReadResult.EOF;
                     }
 
@@ -99,6 +118,8 @@ public final class PacketReader {
                         buf.flip();
                         repeatBuf.clear();
                     } else {
+                        active = false;
+
                         return ReadResult.INCOMPLETE;
                     }
                 }
@@ -121,12 +142,17 @@ public final class PacketReader {
         }
 
         bufCount = -1;
+        active = false;
 
         return ReadResult.COMPLETE;
     }
 
     public boolean ready() {
         return bufCount == -1;
+    }
+
+    public boolean active() {
+        return active;
     }
 
     public short getPacketId() {

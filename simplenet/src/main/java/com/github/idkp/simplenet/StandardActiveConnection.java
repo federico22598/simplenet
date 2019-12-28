@@ -1,29 +1,37 @@
 package com.github.idkp.simplenet;
 
 import java.io.IOException;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.function.Supplier;
 
 public class StandardActiveConnection implements ActiveConnection {
     private final PacketHandler packetHandler;
     private final SocketChannel channel;
-    private final PacketWriter writer;
+    private final PacketWriter packetWriter;
+    private final PacketReader packetReader;
 
-    public StandardActiveConnection(PacketHandler packetHandler, SocketChannel channel, PacketWriter writer) {
+    public StandardActiveConnection(PacketHandler packetHandler,
+                                    SocketChannel channel,
+                                    PacketWriter packetWriter, PacketReader packetReader) {
         this.packetHandler = packetHandler;
         this.channel = channel;
-        this.writer = writer;
+        this.packetWriter = packetWriter;
+        this.packetReader = packetReader;
     }
 
     @Override
     public <T> void sendPacket(String name, T payload) {
-        packetHandler.sendPacket(name, payload, writer);
+        packetHandler.sendPacket(name, payload, packetWriter);
     }
 
     @Override
     public void sendPacket(String name) {
-        packetHandler.sendPacket(name, writer);
+        packetHandler.sendPacket(name, packetWriter);
+    }
+
+    @Override
+    public boolean isReadingPacketData() {
+        return packetReader.active();
     }
 
     @Override

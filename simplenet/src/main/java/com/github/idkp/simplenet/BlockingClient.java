@@ -40,7 +40,7 @@ public class BlockingClient implements Client {
         PacketWriter bufWriter = new PacketWriter(channel, selector);
         PacketReader bufReader = new PacketReader(channel);
         PacketHandler packetHandler = packetHandlerSupplier.get();
-        connection = new StandardActiveConnection(packetHandler, channel, bufWriter);
+        connection = new StandardActiveConnection(packetHandler, channel, bufWriter, bufReader);
 
         finishListener.run();
 
