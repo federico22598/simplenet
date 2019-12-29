@@ -34,15 +34,7 @@ public final class Launcher {
                     ActiveConnection conn = connectionAttemptResult.getConnection();
 
                     conn.setPacketPayloadDecoder("greetings", new GreetingsPacketPayloadDecoder());
-                    conn.<String>addPacketListener("greetings", "", payload -> {
-                        System.out.println(payload);
-
-                        try {
-                            conn.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    });
+                    conn.<String>addPacketListener("greetings", "", System.out::println);
                 })
                 .build();
 

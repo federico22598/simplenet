@@ -64,7 +64,14 @@ public final class PacketWriter {
 
                 if (!completedWrDataHeaderWrite) {
                     if (!startedWrDataHeaderWrite) {
-                        if (bufWrData.repeatingBufWriter != null) {
+                        if (bufWrData.repeatingBufWriter == null) {
+                            bufWrDataHeaderBufs[0] = bufWrDataPosRepsBuf;
+
+                            bufWrDataPosRepsBuf.clear();
+                            bufWrDataPosRepsBuf.put((byte) 0);
+                            bufWrDataPosRepsBuf.putShort((short) buf.position());
+                            bufWrDataPosRepsBuf.flip();
+                        } else {
                             if (bufWrDataRepeat) {
                                 buf.clear();
                                 bufWrDataRepeat = bufWrData.repeatingBufWriter.repeat();
@@ -84,13 +91,6 @@ public final class PacketWriter {
                                 bufWrDataCapPosRepsBuf.putShort((short) buf.capacity());
                                 bufWrDataCapPosRepsBuf.flip();
                             }
-                        } else {
-                            bufWrDataHeaderBufs[0] = bufWrDataPosRepsBuf;
-
-                            bufWrDataPosRepsBuf.clear();
-                            bufWrDataPosRepsBuf.put((byte) 0);
-                            bufWrDataPosRepsBuf.putShort((short) buf.position());
-                            bufWrDataPosRepsBuf.flip();
                         }
 
                         buf.flip();

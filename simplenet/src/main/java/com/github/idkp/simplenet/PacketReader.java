@@ -143,6 +143,7 @@ public final class PacketReader {
 
         payload = decoder.fetchResult();
         active = false;
+        bufCount = -1;
 
         return ReadResult.COMPLETE;
     }
