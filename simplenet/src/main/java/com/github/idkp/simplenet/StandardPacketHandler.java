@@ -82,23 +82,23 @@ public final class StandardPacketHandler implements PacketHandler {
             }
         }
 
-        if (reader.isPacketPayloadless()) {
-            return ReadResult.COMPLETE;
-        } else {
+        if (!reader.isPacketPayloadless()) {
             ReadResult readResult = reader.readPayload();
 
-            if (readResult == ReadResult.COMPLETE) {
-                Map<String, PacketListener<Object>> listeners = packetListeners.get(reader.getPacketId());
-
-                if (listeners != null) {
-                    for (PacketListener<Object> listener : listeners.values()) {
-                        listener.accept(reader.getPayload());
-                    }
-                }
+            if (readResult != ReadResult.COMPLETE) {
+                return readResult;
             }
-
-            return readResult;
         }
+
+        Map<String, PacketListener<Object>> listeners = packetListeners.get(reader.getPacketId());
+
+        if (listeners != null) {
+            for (PacketListener<Object> listener : listeners.values()) {
+                listener.accept(reader.getPayload());
+            }
+        }
+
+        return ReadResult.COMPLETE;
     }
 
     @Override
