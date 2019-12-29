@@ -18,7 +18,7 @@ public final class PacketReader {
     private Object payload;
     private boolean payloadBufReadCompleted;
     private volatile boolean active;
-    private int payloadBufSize;
+    private int payloadBufSize = -1;
     private boolean repeatPayloadRead;
 
     public PacketReader(SocketChannel channel) {
