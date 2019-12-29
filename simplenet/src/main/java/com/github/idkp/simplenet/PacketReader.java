@@ -10,7 +10,7 @@ public final class PacketReader {
     private final ByteBuffer payloadHeaderBuf;
     private final ByteBuffer repeatBufCapBuf;
 
-    private short bufCount = -1;
+    private short bufCount;
     private PayloadDecoder<?> decoder;
     private short lastBufIdx;
     private ByteBuffer payloadBuf;
@@ -143,13 +143,13 @@ public final class PacketReader {
 
         payload = decoder.fetchResult();
         active = false;
-        bufCount = -1;
+        bufCount = 0;
 
         return ReadResult.COMPLETE;
     }
 
     public boolean ready() {
-        return bufCount == -1;
+        return bufCount == 0;
     }
 
     public boolean active() {
