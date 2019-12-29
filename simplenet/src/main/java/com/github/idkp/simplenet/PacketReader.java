@@ -6,25 +6,26 @@ import java.nio.channels.SocketChannel;
 
 public final class PacketReader {
     private final SocketChannel channel;
-    private final ByteBuffer bufCapBuf;
     private final ByteBuffer headerBuf;
-    private final ByteBuffer repeatBuf;
+    private final ByteBuffer payloadHeaderBuf;
+    private final ByteBuffer repeatBufCapBuf;
 
     private short bufCount = -1;
     private PayloadDecoder<?> decoder;
     private short lastBufIdx;
-    private ByteBuffer buf;
+    private ByteBuffer payloadBuf;
     private short packetId;
     private Object payload;
-    private boolean bufReadCompleted;
-    private boolean repeatBufReadCompleted;
+    private boolean payloadBufReadCompleted;
     private volatile boolean active;
+    private int payloadBufSize;
+    private boolean repeatPayloadRead;
 
     public PacketReader(SocketChannel channel) {
         this.channel = channel;
-        this.bufCapBuf = ByteBuffer.allocateDirect(2);
         this.headerBuf = ByteBuffer.allocateDirect(4);
-        this.repeatBuf = ByteBuffer.allocateDirect(1);
+        this.payloadHeaderBuf = ByteBuffer.allocateDirect(3);
+        this.repeatBufCapBuf = ByteBuffer.allocateDirect(2);
     }
 
     public ReadResult readHeader(ShortFunction<PayloadDecoder> payloadDecoderSupplier) throws IOException {
@@ -45,103 +46,102 @@ public final class PacketReader {
         headerBuf.flip();
 
         packetId = headerBuf.getShort();
-        decoder = payloadDecoderSupplier.apply(packetId);
         bufCount = headerBuf.getShort();
+
+        if (bufCount == 0) {
+            active = false;
+        } else {
+            decoder = payloadDecoderSupplier.apply(packetId);
+        }
 
         headerBuf.clear();
 
         lastBufIdx = 0;
         payload = null;
 
-        if (decoder == null) {
-            active = false;
-        }
-
         return ReadResult.COMPLETE;
     }
 
     public ReadResult readPayload() throws IOException {
-        if (bufCount != 0) {
-            while (lastBufIdx < bufCount) {
-                if (buf == null) {
-                    int bytesRead = channel.read(bufCapBuf);
+        while (lastBufIdx < bufCount) {
+            if (payloadBufSize == -1) {
+                int bytesRead = channel.read(payloadHeaderBuf);
 
-                    if (bytesRead == -1) {
-                        active = false;
+                if (bytesRead == -1) {
+                    active = false;
 
-                        return ReadResult.EOF;
-                    }
-
-                    if (bufCapBuf.position() != bufCapBuf.capacity()) {
-                        active = false;
-
-                        return ReadResult.INCOMPLETE;
-                    }
-
-                    bufCapBuf.flip();
-
-                    short cap = bufCapBuf.getShort();
-
-                    bufCapBuf.clear();
-
-                    buf = ByteBuffer.allocate(cap);
+                    return ReadResult.EOF;
                 }
 
-                if (!repeatBufReadCompleted) {
-                    int bytesRead = channel.read(repeatBuf);
+                if (payloadHeaderBuf.position() != payloadHeaderBuf.capacity()) {
+                    active = false;
 
-                    if (bytesRead == -1) {
-                        return ReadResult.EOF;
-                    }
-
-                    if (repeatBuf.position() == repeatBuf.capacity()) {
-                        repeatBufReadCompleted = true;
-                        repeatBuf.flip();
-                    } else {
-                        active = false;
-
-                        return ReadResult.INCOMPLETE;
-                    }
+                    return ReadResult.INCOMPLETE;
                 }
 
-                if (!bufReadCompleted) {
-                    int bytesRead = channel.read(buf);
-
-                    if (bytesRead == -1) {
-                        active = false;
-
-                        return ReadResult.EOF;
-                    }
-
-                    if (buf.position() == buf.capacity()) {
-                        bufReadCompleted = true;
-                        buf.flip();
-                        repeatBuf.clear();
-                    } else {
-                        active = false;
-
-                        return ReadResult.INCOMPLETE;
-                    }
-                }
-
-                decoder.decode(buf);
-
-                if (repeatBuf.get() == (byte) 1) {
-                    buf.clear();
-                } else {
-                    buf = null;
-                    lastBufIdx++;
-                }
-
-                bufReadCompleted = false;
-                repeatBufReadCompleted = false;
-                repeatBuf.clear();
+                payloadHeaderBuf.flip();
+                payloadBufSize = payloadHeaderBuf.getShort();
+                repeatPayloadRead = payloadHeaderBuf.get() == (byte) 1;
+                payloadHeaderBuf.clear();
             }
 
-            payload = decoder.fetchResult();
+            if (payloadBuf == null) {
+                if (repeatPayloadRead) {
+                    int bytesRead = channel.read(repeatBufCapBuf);
+
+                    if (bytesRead == -1) {
+                        active = false;
+
+                        return ReadResult.EOF;
+                    }
+
+                    if (repeatBufCapBuf.position() != repeatBufCapBuf.capacity()) {
+                        active = false;
+
+                        return ReadResult.INCOMPLETE;
+                    }
+
+                    repeatBufCapBuf.flip();
+                    payloadBuf = ByteBuffer.allocate(repeatBufCapBuf.getShort());
+                    repeatBufCapBuf.clear();
+                } else {
+                    payloadBuf = ByteBuffer.allocate(payloadBufSize);
+                }
+            }
+
+            if (!payloadBufReadCompleted) {
+                int bytesRead = channel.read(payloadBuf);
+
+                if (bytesRead == -1) {
+                    active = false;
+
+                    return ReadResult.EOF;
+                }
+
+                if (payloadBuf.position() != payloadBufSize) {
+                    active = false;
+
+                    return ReadResult.INCOMPLETE;
+                }
+
+                payloadBuf.flip();
+                payloadBufReadCompleted = true;
+            }
+
+            decoder.decode(payloadBuf);
+
+            if (repeatPayloadRead) {
+                payloadBuf.clear();
+            } else {
+                payloadBuf = null;
+                lastBufIdx++;
+            }
+
+            payloadBufSize = -1;
+            payloadBufReadCompleted = false;
         }
 
-        bufCount = -1;
+        payload = decoder.fetchResult();
         active = false;
 
         return ReadResult.COMPLETE;
@@ -153,6 +153,10 @@ public final class PacketReader {
 
     public boolean active() {
         return active;
+    }
+
+    public boolean isPacketPayloadless() {
+        return bufCount == 0;
     }
 
     public short getPacketId() {

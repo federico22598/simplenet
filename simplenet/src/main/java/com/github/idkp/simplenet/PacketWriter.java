@@ -13,31 +13,24 @@ public final class PacketWriter {
     private final Selector selector;
     private final Queue<PacketWriteData> wrDataQueue;
     private final ByteBuffer wrDataHeaderBuf;
-    private final ByteBuffer bufWrDataRepsBuf;
-    private final ByteBuffer bufWrDataCapRepsBuf;
+    private final ByteBuffer bufWrDataPosRepsBuf;
+    private final ByteBuffer bufWrDataCapPosRepsBuf;
     private final ByteBuffer[] bufWrDataHeaderBufs;
-    private final ByteBuffer[] bufWrDataPayloadRepsBufs;
     private boolean writing;
     private boolean completedLastHeaderWrite;
     private boolean startedLastHeaderWrite;
     private boolean completedWrDataHeaderWrite;
     private boolean startedWrDataHeaderWrite;
     private boolean bufWrDataRepeat;
-    private boolean updatedPayloadBufArr;
-    private boolean wroteRepsBuf;
 
     public PacketWriter(SocketChannel channel, Selector selector) {
         this.channel = channel;
         this.selector = selector;
         this.wrDataQueue = new ArrayDeque<>();
         this.wrDataHeaderBuf = ByteBuffer.allocateDirect(4);
-        this.bufWrDataRepsBuf = ByteBuffer.allocateDirect(1);
-        this.bufWrDataCapRepsBuf = ByteBuffer.allocateDirect(3);
+        this.bufWrDataPosRepsBuf = ByteBuffer.allocateDirect(3);
+        this.bufWrDataCapPosRepsBuf = ByteBuffer.allocateDirect(5);
         this.bufWrDataHeaderBufs = new ByteBuffer[2];
-        this.bufWrDataPayloadRepsBufs = new ByteBuffer[2];
-
-        this.bufWrDataHeaderBufs[0] = bufWrDataCapRepsBuf;
-        this.bufWrDataPayloadRepsBufs[0] = bufWrDataRepsBuf;
     }
 
     public void writeToChannel() throws IOException {
@@ -69,22 +62,37 @@ public final class PacketWriter {
                 PacketBufWriteData bufWrData = bufWrDataQueue.peek();
                 ByteBuffer buf = bufWrData.buf;
 
-                if (completedWrDataHeaderWrite) {
-                    if (wroteRepsBuf) {
-                        channel.write(buf);
-                    } else {
-                        channel.write(bufWrDataPayloadRepsBufs);
-                    }
-                } else {
+                if (!completedWrDataHeaderWrite) {
                     if (!startedWrDataHeaderWrite) {
                         if (bufWrData.repeatingBufWriter != null) {
-                            bufWrDataRepeat = bufWrData.repeatingBufWriter.repeat();
+                            if (bufWrDataRepeat) {
+                                buf.clear();
+                                bufWrDataRepeat = bufWrData.repeatingBufWriter.repeat();
+                                bufWrDataHeaderBufs[0] = bufWrDataPosRepsBuf;
+
+                                bufWrDataPosRepsBuf.clear();
+                                bufWrDataPosRepsBuf.put(bufWrDataRepeat ? (byte) 1 : (byte) 0);
+                                bufWrDataPosRepsBuf.putShort((short) buf.position());
+                                bufWrDataPosRepsBuf.flip();
+                            } else { // first time
+                                bufWrDataRepeat = bufWrData.repeatingBufWriter.repeat();
+                                bufWrDataHeaderBufs[0] = bufWrDataCapPosRepsBuf;
+
+                                bufWrDataCapPosRepsBuf.clear();
+                                bufWrDataCapPosRepsBuf.put(bufWrDataRepeat ? (byte) 1 : (byte) 0);
+                                bufWrDataCapPosRepsBuf.putShort((short) buf.position());
+                                bufWrDataCapPosRepsBuf.putShort((short) buf.capacity());
+                                bufWrDataCapPosRepsBuf.flip();
+                            }
+                        } else {
+                            bufWrDataHeaderBufs[0] = bufWrDataPosRepsBuf;
+
+                            bufWrDataPosRepsBuf.clear();
+                            bufWrDataPosRepsBuf.put((byte) 0);
+                            bufWrDataPosRepsBuf.putShort((short) buf.position());
+                            bufWrDataPosRepsBuf.flip();
                         }
 
-                        bufWrDataCapRepsBuf.clear();
-                        bufWrDataCapRepsBuf.putShort((short) buf.position());
-                        bufWrDataCapRepsBuf.put(bufWrDataRepeat ? (byte) 1 : (byte) 0);
-                        bufWrDataCapRepsBuf.flip();
                         buf.flip();
 
                         bufWrDataHeaderBufs[1] = buf;
@@ -93,53 +101,25 @@ public final class PacketWriter {
 
                     channel.write(bufWrDataHeaderBufs);
 
-                    if (bufWrDataCapRepsBuf.hasRemaining()) {
+                    if (bufWrDataHeaderBufs[0].hasRemaining()) {
                         return;
                     }
 
-                    bufWrDataCapRepsBuf.clear();
-
                     completedWrDataHeaderWrite = true;
-                    wroteRepsBuf = true;
+                } else {
+                    channel.write(buf);
                 }
 
                 if (buf.hasRemaining()) {
-                    if (!updatedPayloadBufArr) {
-                        bufWrDataPayloadRepsBufs[1] = buf;
-                        updatedPayloadBufArr = true;
-                    }
-
                     return;
-                }
-
-                if (bufWrDataRepeat) {
-                    buf.clear();
-                    //noinspection ConstantConditions
-                    bufWrDataRepeat = bufWrData.repeatingBufWriter.repeat();
-
-                    buf.flip();
-
-                    if (!updatedPayloadBufArr) {
-                        bufWrDataPayloadRepsBufs[1] = buf;
-                        updatedPayloadBufArr = true;
-                    }
-
-                    bufWrDataRepsBuf.clear();
-                    bufWrDataRepsBuf.put(bufWrDataRepeat ? (byte) 1 : (byte) 0);
-                    bufWrDataRepsBuf.flip();
-
-                    wroteRepsBuf = false;
-
-                    continue;
                 }
 
                 completedWrDataHeaderWrite = false;
                 startedWrDataHeaderWrite = false;
-                bufWrDataRepeat = false;
-                updatedPayloadBufArr = false;
-                wroteRepsBuf = false;
 
-                bufWrDataQueue.remove();
+                if (!bufWrDataRepeat) {
+                    bufWrDataQueue.remove();
+                }
             }
 
             completedLastHeaderWrite = false;
