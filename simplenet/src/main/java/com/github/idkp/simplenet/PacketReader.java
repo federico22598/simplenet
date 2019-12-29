@@ -31,10 +31,16 @@ public final class PacketReader {
     public ReadResult readHeader(ShortFunction<PayloadDecoder> payloadDecoderSupplier) throws IOException {
         active = true;
 
-        if (channel.read(headerBuf) == -1) {
+        try {
+            if (channel.read(headerBuf) == -1) {
+                active = false;
+
+                return ReadResult.EOF;
+            }
+        } catch (IOException e) {
             active = false;
 
-            return ReadResult.EOF;
+            throw e;
         }
 
         if (headerBuf.position() != headerBuf.capacity()) {
@@ -65,7 +71,14 @@ public final class PacketReader {
     public ReadResult readPayload() throws IOException {
         while (lastBufIdx < bufCount) {
             if (payloadBufSize == -1) {
-                int bytesRead = channel.read(payloadHeaderBuf);
+                int bytesRead;
+
+                try {
+                    bytesRead = channel.read(payloadHeaderBuf);
+                } catch (IOException e) {
+                    active = false;
+                    throw e;
+                }
 
                 if (bytesRead == -1) {
                     active = false;
@@ -87,7 +100,14 @@ public final class PacketReader {
 
             if (payloadBuf == null) {
                 if (repeatPayloadRead) {
-                    int bytesRead = channel.read(repeatBufCapBuf);
+                    int bytesRead;
+
+                    try {
+                        bytesRead = channel.read(repeatBufCapBuf);
+                    } catch (IOException e) {
+                        active = false;
+                        throw e;
+                    }
 
                     if (bytesRead == -1) {
                         active = false;
@@ -110,7 +130,14 @@ public final class PacketReader {
             }
 
             if (!payloadBufReadCompleted) {
-                int bytesRead = channel.read(payloadBuf);
+                int bytesRead;
+
+                try {
+                    bytesRead = channel.read(payloadBuf);
+                } catch (IOException e) {
+                    active = false;
+                    throw e;
+                }
 
                 if (bytesRead == -1) {
                     active = false;
