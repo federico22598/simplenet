@@ -80,8 +80,8 @@ public final class PacketReader {
                 }
 
                 payloadHeaderBuf.flip();
-                payloadBufSize = payloadHeaderBuf.getShort();
                 repeatPayloadRead = payloadHeaderBuf.get() == (byte) 1;
+                payloadBufSize = payloadHeaderBuf.getShort();
                 payloadHeaderBuf.clear();
             }
 
