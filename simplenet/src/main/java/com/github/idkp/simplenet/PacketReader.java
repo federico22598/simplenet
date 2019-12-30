@@ -44,8 +44,6 @@ public final class PacketReader {
         }
 
         if (headerBuf.position() != headerBuf.capacity()) {
-            active = false;
-
             return ReadResult.INCOMPLETE;
         }
 
@@ -54,7 +52,9 @@ public final class PacketReader {
         packetId = headerBuf.getShort();
         bufCount = headerBuf.getShort();
 
-        if (bufCount != 0) {
+        if (bufCount == 0) {
+            active = false;
+        } else {
             decoder = payloadDecoderSupplier.apply(packetId);
         }
 
@@ -62,14 +62,11 @@ public final class PacketReader {
 
         lastBufIdx = 0;
         payload = null;
-        active = false;
 
         return ReadResult.COMPLETE;
     }
 
     public ReadResult readPayload() throws IOException {
-        active = true;
-
         while (lastBufIdx < bufCount) {
             if (payloadBufSize == -1) {
                 int bytesRead;
@@ -88,8 +85,6 @@ public final class PacketReader {
                 }
 
                 if (payloadHeaderBuf.position() != payloadHeaderBuf.capacity()) {
-                    active = false;
-
                     return ReadResult.INCOMPLETE;
                 }
 
@@ -107,6 +102,7 @@ public final class PacketReader {
                         bytesRead = channel.read(repeatBufCapBuf);
                     } catch (IOException e) {
                         active = false;
+
                         throw e;
                     }
 
@@ -117,8 +113,6 @@ public final class PacketReader {
                     }
 
                     if (repeatBufCapBuf.position() != repeatBufCapBuf.capacity()) {
-                        active = false;
-
                         return ReadResult.INCOMPLETE;
                     }
 
@@ -137,6 +131,7 @@ public final class PacketReader {
                     bytesRead = channel.read(payloadBuf);
                 } catch (IOException e) {
                     active = false;
+
                     throw e;
                 }
 
@@ -147,8 +142,6 @@ public final class PacketReader {
                 }
 
                 if (payloadBuf.position() != payloadBufSize) {
-                    active = false;
-
                     return ReadResult.INCOMPLETE;
                 }
 
