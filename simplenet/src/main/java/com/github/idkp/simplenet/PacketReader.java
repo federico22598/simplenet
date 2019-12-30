@@ -54,9 +54,7 @@ public final class PacketReader {
         packetId = headerBuf.getShort();
         bufCount = headerBuf.getShort();
 
-        if (bufCount == 0) {
-            active = false;
-        } else {
+        if (bufCount != 0) {
             decoder = payloadDecoderSupplier.apply(packetId);
         }
 
@@ -64,11 +62,14 @@ public final class PacketReader {
 
         lastBufIdx = 0;
         payload = null;
+        active = false;
 
         return ReadResult.COMPLETE;
     }
 
     public ReadResult readPayload() throws IOException {
+        active = true;
+
         while (lastBufIdx < bufCount) {
             if (payloadBufSize == -1) {
                 int bytesRead;
