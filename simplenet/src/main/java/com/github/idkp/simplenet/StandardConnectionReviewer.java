@@ -48,7 +48,7 @@ public class StandardConnectionReviewer implements ConnectionReviewer {
         ConnectionConfiguration config = configProvider.apply(address);
         PacketWriter packetWriter = new StandardPacketWriter(channel, selector, config);
         PacketReader packetReader = new StandardPacketReader(channel, config);
-        ActiveConnection connection = new StandardActiveConnection(channel, packetWriter, packetReader);
+        ActiveConnection connection = new StandardActiveConnection(channel, packetWriter, packetReader, config);
 
         try {
             channel.configureBlocking(false);

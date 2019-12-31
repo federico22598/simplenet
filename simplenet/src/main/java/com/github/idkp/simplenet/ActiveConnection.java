@@ -11,5 +11,7 @@ public interface ActiveConnection extends Closeable {
 
     boolean isReadingPacketData();
 
+    ConnectionConfiguration getConfiguration();
+
     SocketChannel getChannel();
 }

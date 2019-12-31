@@ -31,7 +31,7 @@ public class BlockingClient implements Client {
 
         PacketWriter writer = new StandardPacketWriter(channel, selector, configuration);
         PacketReader reader = new StandardPacketReader(channel, configuration);
-        connection = new StandardActiveConnection(channel, writer, reader);
+        connection = new StandardActiveConnection(channel, writer, reader, configuration);
 
         finishListener.run();
 
