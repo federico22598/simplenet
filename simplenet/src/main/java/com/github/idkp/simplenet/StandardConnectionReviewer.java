@@ -4,14 +4,21 @@ import com.sun.javafx.collections.ObservableSetWrapper;
 import javafx.collections.ObservableSet;
 
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.HashSet;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class StandardConnectionReviewer implements ConnectionReviewer {
     private final ObservableSet<Predicate<SocketChannel>> filters = new ObservableSetWrapper<>(new HashSet<>());
+    private final Function<SocketAddress, ConnectionConfiguration> configProvider;
+
+    public StandardConnectionReviewer(Function<SocketAddress, ConnectionConfiguration> configProvider) {
+        this.configProvider = configProvider;
+    }
 
     @Override
     public ConnectionAttemptResult accept(Server server) {
@@ -20,30 +27,38 @@ public class StandardConnectionReviewer implements ConnectionReviewer {
         try {
             channel = server.getChannel().accept();
         } catch (IOException e) {
-            return ConnectionAttemptResult.failed(e);
+            return new FailedConnectionAttemptResult(e);
         }
 
         for (Predicate<SocketChannel> filter : filters) {
             if (filter.test(channel)) {
-                return ConnectionAttemptResult.filtered();
+                return new FilteredConnectionAttemptResult();
             }
         }
 
-        PacketHandler packetHandler = new StandardPacketHandler();
+        SocketAddress address;
+
+        try {
+            address = channel.getRemoteAddress();
+        } catch (IOException e) {
+            return new FailedConnectionAttemptResult(e);
+        }
+
         Selector selector = server.getSelector();
-        PacketWriter packetWriter = new PacketWriter(channel, selector);
-        PacketReader packetReader = new PacketReader(channel);
-        ActiveConnection connection = new StandardActiveConnection(packetHandler, channel, packetWriter, packetReader);
+        ConnectionConfiguration config = configProvider.apply(address);
+        PacketWriter packetWriter = new StandardPacketWriter(channel, selector, config);
+        PacketReader packetReader = new StandardPacketReader(channel, config);
+        ActiveConnection connection = new StandardActiveConnection(channel, packetWriter, packetReader);
 
         try {
             channel.configureBlocking(false);
             channel.register(server.getSelector(), SelectionKey.OP_READ,
-                    new ServerSelectorKeyData(packetWriter, packetReader, packetHandler, connection));
+                    new ServerSelectorKeyData(packetWriter, packetReader, connection));
         } catch (IOException e) {
-            return ConnectionAttemptResult.failed(e);
+            return new FailedConnectionAttemptResult(e);
         }
 
-        return ConnectionAttemptResult.succeeded(connection);
+        return new OKConnectionAttemptResult(connection);
     }
 
     @Override

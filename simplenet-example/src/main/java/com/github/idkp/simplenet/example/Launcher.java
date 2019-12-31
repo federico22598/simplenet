@@ -18,23 +18,39 @@ public final class Launcher {
     private static void startClient() throws IOException {
         Client client = new BlockingClient();
         SocketAddress serverAddress = new InetSocketAddress(InetAddress.getLocalHost(), SERVER_PORT);
+        ServerConnectionConfiguration config = new StandardServerConnectionConfiguration(serverAddress);
 
-        client.connect(serverAddress, () -> {
+        config.registerPacket((short) 0, "greetings");
+        config.setPacketPayloadEncoder("greetings", new GreetingsPacketPayloadEncoder());
+        client.connect(config, () -> {
             ActiveConnection connection = client.getConnection();
 
-            connection.setPacketPayloadEncoder("greetings", new GreetingsPacketPayloadEncoder());
             connection.sendPacket("greetings", "Hello, world!");
         });
     }
 
     private static void startServer() throws IOException {
         Server server = new StandardServer.Builder()
-                .withConnectionReviewer(new StandardConnectionReviewer())
-                .withConnectionAcceptAttemptHandler(connectionAttemptResult -> {
-                    ActiveConnection conn = connectionAttemptResult.getConnection();
+                .withConnectionReviewer(new StandardConnectionReviewer(clientAddr -> {
+                    ConnectionConfiguration clientCfg = new StandardConnectionConfiguration();
 
-                    conn.setPacketPayloadDecoder("greetings", new GreetingsPacketPayloadDecoder());
-                    conn.<String>addPacketListener("greetings", "", System.out::println);
+                    clientCfg.registerPacket((short) 0, "greetings");
+                    clientCfg.setPacketPayloadDecoder("greetings", new GreetingsPacketPayloadDecoder());
+                    clientCfg.<String>addPacketListener("greetings", "0", System.out::println);
+                    return clientCfg;
+                }))
+                .withConnectionAcceptAttemptHandler(connectionAttemptResult -> {
+                    if (connectionAttemptResult.getType() != ConnectionAttemptResult.Type.OK) {
+                        return;
+                    }
+
+                    ActiveConnection conn = ((OKConnectionAttemptResult) connectionAttemptResult).getConnection();
+
+                    try {
+                        System.out.println("Connection established: " + conn.getChannel().getRemoteAddress());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 })
                 .build();
 

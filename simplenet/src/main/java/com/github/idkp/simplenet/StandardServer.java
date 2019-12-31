@@ -114,10 +114,10 @@ public class StandardServer implements Server {
 
     private void processAcceptableKey() {
         ConnectionAttemptResult result = this.connectionReviewer.accept(this);
-        IOException iOException = result.getIOException();
+        ConnectionAttemptResult.Type resType = result.getType();
 
-        if (iOException == null) {
-            ActiveConnection connection = result.getConnection();
+        if (resType == ConnectionAttemptResult.Type.OK) {
+            ActiveConnection connection = ((OKConnectionAttemptResult) result).getConnection();
 
             if (connection != null) {
                 try {
@@ -128,8 +128,8 @@ public class StandardServer implements Server {
                     e.printStackTrace();
                 }
             }
-        } else {
-            errorHandler.handle("accept", this, iOException);
+        } else if (resType == ConnectionAttemptResult.Type.FAILED) {
+            errorHandler.handle("accept", this, ((FailedConnectionAttemptResult) result).getException());
         }
 
         if (connectionAcceptAttemptHandler != null) {
@@ -142,7 +142,7 @@ public class StandardServer implements Server {
         PacketWriter writer = keyData.packetWriter;
 
         try {
-            writer.writeToChannel();
+            writer.flush();
         } catch (IOException e) {
             errorHandler.handle("write", this, keyData.conn, e);
         }
@@ -150,10 +150,10 @@ public class StandardServer implements Server {
 
     private void processReadableKey(SelectionKey key) {
         ServerSelectorKeyData keyData = (ServerSelectorKeyData) key.attachment();
-        PacketHandler packetHandler = keyData.packetHandler;
+        PacketReader packetReader = keyData.packetReader;
 
         try {
-            if (packetHandler.attemptToReadPacket(keyData.packetReader) == ReadResult.EOF) {
+            if (packetReader.read() == ReadResult.EOF) {
                 errorHandler.handle("eof", this, keyData.conn);
             }
         } catch (IOException e) {

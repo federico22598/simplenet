@@ -1,46 +1,37 @@
 package com.github.idkp.simplenet;
 
 import java.io.IOException;
-import java.net.SocketAddress;
 import java.nio.channels.*;
 import java.util.Iterator;
-import java.util.function.Supplier;
 
 public class BlockingClient implements Client {
     private final ClientErrorHandler errorHandler;
-    private final Supplier<PacketHandler> packetHandlerSupplier;
     private Selector selector;
     private ActiveConnection connection;
 
-    public BlockingClient(ClientErrorHandler errorHandler, Supplier<PacketHandler> packetHandlerSupplier) {
+    public BlockingClient(ClientErrorHandler errorHandler) {
         this.errorHandler = errorHandler;
-        this.packetHandlerSupplier = packetHandlerSupplier;
-    }
-
-    public BlockingClient(Supplier<PacketHandler> packetHandlerSupplier) {
-        this(new ClosingClientErrorHandler(false), packetHandlerSupplier);
     }
 
     public BlockingClient() {
-        this(StandardPacketHandler::new);
+        this(new ClosingClientErrorHandler(false));
     }
 
     @Override
-    public void connect(SocketAddress address, Runnable finishListener) throws IOException {
+    public void connect(ServerConnectionConfiguration configuration, Runnable finishListener) throws IOException {
         if (connection != null) {
             throw new AlreadyConnectedException();
         }
 
-        SocketChannel channel = SocketChannel.open(address);
+        SocketChannel channel = SocketChannel.open(configuration.getAddress());
+        selector = Selector.open();
 
         channel.configureBlocking(false);
-        selector = Selector.open();
         channel.register(selector, SelectionKey.OP_READ);
 
-        PacketWriter bufWriter = new PacketWriter(channel, selector);
-        PacketReader bufReader = new PacketReader(channel);
-        PacketHandler packetHandler = packetHandlerSupplier.get();
-        connection = new StandardActiveConnection(packetHandler, channel, bufWriter, bufReader);
+        PacketWriter writer = new StandardPacketWriter(channel, selector, configuration);
+        PacketReader reader = new StandardPacketReader(channel, configuration);
+        connection = new StandardActiveConnection(channel, writer, reader);
 
         finishListener.run();
 
@@ -64,13 +55,13 @@ public class BlockingClient implements Client {
 
                 if (key.isWritable()) {
                     try {
-                        bufWriter.writeToChannel();
+                        writer.flush();
                     } catch (IOException e) {
                         errorHandler.handle("write", this, e);
                     }
                 } else if (key.isReadable()) {
                     try {
-                        if (packetHandler.attemptToReadPacket(bufReader) == ReadResult.EOF) {
+                        if (reader.read() == ReadResult.EOF) {
                             errorHandler.handle("eof", this);
                         }
                     } catch (IOException e) {

@@ -11,23 +11,5 @@ public interface ActiveConnection extends Closeable {
 
     boolean isReadingPacketData();
 
-    void registerPayloadlessPacket(String name);
-
-    void setPacketPayloadEncoder(String packetName, PayloadEncoder<?> encoder);
-
-    void setPacketPayloadDecoder(String packetName, PayloadDecoder<?> decoder);
-
-    void setPacketPayloadFactory(String packetName, Supplier<?> factory);
-
-    <T> boolean addPacketListener(String packetName, String name, PacketListener<T> listener);
-
-    boolean removePacketListener(String packetName, String name);
-
-    boolean removePacketListeners(String packetName);
-
-    boolean hasPacketListener(String packetName, String name);
-
-    boolean hasPacketListeners(String packetName);
-
     SocketChannel getChannel();
 }

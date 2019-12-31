@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 
 public interface Client extends Closeable {
-    void connect(SocketAddress address, Runnable finishListener) throws IOException;
+    void connect(ServerConnectionConfiguration configuration, Runnable finishListener) throws IOException;
 
     ActiveConnection getConnection();
 
