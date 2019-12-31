@@ -7,6 +7,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
 import java.util.Queue;
+import java.util.function.Supplier;
 
 public final class StandardPacketWriter implements PacketWriter {
     private final SocketChannel channel;
@@ -46,9 +47,18 @@ public final class StandardPacketWriter implements PacketWriter {
 
         PacketWriteData writeData = new PacketWriteData(packetId);
         //noinspection unchecked
-        PayloadEncoder<T> encoder = (PayloadEncoder<T>) connConfig.getPacketPayloadEncoder(packetName);
+        PayloadEncoder<T> encoder = (PayloadEncoder<T>) connConfig.getPacketPayloadEncoder(packetId);
 
-        if (encoder != null) {
+        if (payload == null) {
+            Supplier<?> payloadSupplier = connConfig.getPacketPayloadFactory(packetId);
+
+            if (payloadSupplier != null) {
+                //noinspection unchecked
+                payload = (T) payloadSupplier.get();
+            }
+        }
+
+        if (payload != null && encoder != null) {
             encoder.encode(payload, new StandardPacketBufferWriter(writeData));
         }
 
