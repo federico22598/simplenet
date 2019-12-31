@@ -27,12 +27,12 @@ public class StandardConnectionReviewer implements ConnectionReviewer {
         try {
             channel = server.getChannel().accept();
         } catch (IOException e) {
-            return new FailedConnectionAttemptResult(e);
+            return new FailedConnectionAttemptResult(e, null);
         }
 
         for (Predicate<SocketChannel> filter : filters) {
             if (filter.test(channel)) {
-                return new FilteredConnectionAttemptResult();
+                return new FilteredConnectionAttemptResult(channel);
             }
         }
 
@@ -41,7 +41,7 @@ public class StandardConnectionReviewer implements ConnectionReviewer {
         try {
             address = channel.getRemoteAddress();
         } catch (IOException e) {
-            return new FailedConnectionAttemptResult(e);
+            return new FailedConnectionAttemptResult(e, channel);
         }
 
         Selector selector = server.getSelector();
@@ -55,7 +55,7 @@ public class StandardConnectionReviewer implements ConnectionReviewer {
             channel.register(server.getSelector(), SelectionKey.OP_READ,
                     new ServerSelectorKeyData(packetWriter, packetReader, connection));
         } catch (IOException e) {
-            return new FailedConnectionAttemptResult(e);
+            return new FailedConnectionAttemptResult(e, channel);
         }
 
         return new OKConnectionAttemptResult(connection);

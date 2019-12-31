@@ -1,5 +1,7 @@
 package com.github.idkp.simplenet;
 
+import java.nio.channels.SocketChannel;
+
 public final class OKConnectionAttemptResult implements ConnectionAttemptResult {
     private final ActiveConnection connection;
 
