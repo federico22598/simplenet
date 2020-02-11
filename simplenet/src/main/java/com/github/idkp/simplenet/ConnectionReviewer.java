@@ -1,8 +1,7 @@
 package com.github.idkp.simplenet;
 
-import javafx.collections.ObservableSet;
-
 import java.nio.channels.SocketChannel;
+import java.util.Set;
 import java.util.function.Predicate;
 
 public interface ConnectionReviewer {
@@ -14,5 +13,5 @@ public interface ConnectionReviewer {
 
     boolean hasFilter(Predicate<SocketChannel> filter);
 
-    ObservableSet<Predicate<SocketChannel>> getFilters();
+    Set<Predicate<SocketChannel>> getFilters();
 }

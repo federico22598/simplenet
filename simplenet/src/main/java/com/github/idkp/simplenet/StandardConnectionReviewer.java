@@ -1,19 +1,17 @@
 package com.github.idkp.simplenet;
 
-import com.sun.javafx.collections.ObservableSetWrapper;
-import javafx.collections.ObservableSet;
-
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class StandardConnectionReviewer implements ConnectionReviewer {
-    private final ObservableSet<Predicate<SocketChannel>> filters = new ObservableSetWrapper<>(new HashSet<>());
+    private final Set<Predicate<SocketChannel>> filters = new HashSet<>();
     private final Function<SocketAddress, ConnectionConfiguration> configProvider;
 
     public StandardConnectionReviewer(Function<SocketAddress, ConnectionConfiguration> configProvider) {
@@ -77,7 +75,7 @@ public class StandardConnectionReviewer implements ConnectionReviewer {
     }
 
     @Override
-    public ObservableSet<Predicate<SocketChannel>> getFilters() {
+    public Set<Predicate<SocketChannel>> getFilters() {
         return filters;
     }
 }
