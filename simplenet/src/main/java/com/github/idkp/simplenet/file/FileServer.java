@@ -11,11 +11,11 @@ import java.nio.file.Path;
 import java.util.Iterator;
 
 public class FileServer implements Closeable {
-    private final FileServerErrorHandler errorHandler;
-    private final boolean openInNewThread;
+    protected final FileServerErrorHandler errorHandler;
+    protected final boolean openInNewThread;
 
-    private Selector selector;
-    private Thread selectorThread;
+    protected Selector selector;
+    protected Thread selectorThread;
 
     public FileServer(boolean openInNewThread) {
         this(new ClosingFileServerErrorHandler(), openInNewThread);
@@ -70,6 +70,10 @@ public class FileServer implements Closeable {
         }
     }
 
+    protected FileServerEntry createEntry(SocketChannel pipeChannel, Path destinationDir, long bufferSize) {
+        return new FileServerEntry(pipeChannel, destinationDir, bufferSize);
+    }
+
     public void registerPipe(SocketChannel pipeChannel, Path destinationDir, long bufferSize) throws IOException {
         if (Files.exists(destinationDir) && !Files.isDirectory(destinationDir)) {
             throw new NotDirectoryException(destinationDir.toString());
@@ -79,8 +83,7 @@ public class FileServer implements Closeable {
 
         synchronized (this) {
             selector.wakeup();
-            pipeChannel.register(selector, SelectionKey.OP_READ,
-                    new FileServerEntry(pipeChannel, destinationDir, bufferSize));
+            pipeChannel.register(selector, SelectionKey.OP_READ, createEntry(pipeChannel, destinationDir, bufferSize));
         }
     }
 
