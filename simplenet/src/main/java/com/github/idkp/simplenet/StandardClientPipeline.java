@@ -14,15 +14,17 @@ public class StandardClientPipeline implements ClientPipeline {
     public void openPipe(ClientPipe pipe, SocketChannel pipeChannel, SocketAddress serverAddress) throws IOException {
         pipeChannelConnector.connect(pipeChannel, serverAddress);
 
-        if (pipes.add(pipe)) {
+        if (!pipes.contains(pipe)) {
             pipe.open(pipeChannel);
+            pipes.add(pipe);
         }
     }
 
     @Override
     public void closePipe(ClientPipe pipe) throws IOException {
-        if (pipes.remove(pipe)) {
+        if (pipes.contains(pipe)) {
             pipe.close();
+            pipes.remove(pipe);
         }
     }
 
