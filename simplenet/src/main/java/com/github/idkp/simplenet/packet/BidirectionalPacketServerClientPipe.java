@@ -31,7 +31,7 @@ public class BidirectionalPacketServerClientPipe implements ServerClientPipe {
         return pipeRegistrationKey.packetWriter;
     }
 
-    public boolean isPacketReaderActive() {
-        return pipeRegistrationKey.packetReader.isActive();
+    public PacketReader getPacketReader() {
+        return pipeRegistrationKey.packetReader;
     }
 }

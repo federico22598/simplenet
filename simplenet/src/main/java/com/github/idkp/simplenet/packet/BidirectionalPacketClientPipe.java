@@ -102,8 +102,8 @@ public class BidirectionalPacketClientPipe implements ClientPipe {
         return packetWriter;
     }
 
-    public boolean isPacketReaderActive() {
-        return packetReader.isActive();
+    public PacketReader getPacketReader() {
+        return packetReader;
     }
 
     @Override

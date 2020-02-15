@@ -38,6 +38,10 @@ public final class PacketWriter {
         this.bufWrDataHeaderBufs = new ByteBuffer[2];
     }
 
+    public PacketPipeOutputConfiguration getConfig() {
+        return config;
+    }
+
     public void queuePacket(String packetName) {
         queuePacket(packetName, null);
     }

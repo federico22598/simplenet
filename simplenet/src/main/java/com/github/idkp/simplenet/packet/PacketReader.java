@@ -215,4 +215,8 @@ public final class PacketReader {
     public boolean isActive() {
         return active;
     }
+
+    public PacketPipeInputConfiguration getConfig() {
+        return config;
+    }
 }

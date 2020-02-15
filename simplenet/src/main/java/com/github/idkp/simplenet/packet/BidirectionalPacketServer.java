@@ -10,26 +10,26 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 
 public class BidirectionalPacketServer implements PacketServer {
-    private final PacketPipeOutputConfiguration pipeOutputConfig;
-    private final PacketPipeInputConfiguration pipeInputConfig;
+    private final OutputConfigurationSupplier pipeOutputConfigSupplier;
+    private final InputConfigurationSupplier pipeInputConfigSupplier;
     private final PacketServerErrorHandler errorHandler;
     private final boolean openInNewThread;
 
     private Selector selector;
     private Thread selectorThread;
 
-    public BidirectionalPacketServer(PacketPipeOutputConfiguration pipeOutputConfig,
-                                     PacketPipeInputConfiguration pipeInputConfig,
+    public BidirectionalPacketServer(OutputConfigurationSupplier pipeOutputConfigSupplier,
+                                     InputConfigurationSupplier pipeInputConfigSupplier,
                                      boolean openInNewThread) {
-        this(pipeOutputConfig, pipeInputConfig, new ClosingPacketServerErrorHandler(), openInNewThread);
+        this(pipeOutputConfigSupplier, pipeInputConfigSupplier, new ClosingPacketServerErrorHandler(), openInNewThread);
     }
 
-    public BidirectionalPacketServer(PacketPipeOutputConfiguration pipeOutputConfig,
-                                     PacketPipeInputConfiguration pipeInputConfig,
+    public BidirectionalPacketServer(OutputConfigurationSupplier pipeOutputConfigSupplier,
+                                     InputConfigurationSupplier pipeInputConfigSupplier,
                                      PacketServerErrorHandler errorHandler,
                                      boolean openInNewThread) {
-        this.pipeOutputConfig = pipeOutputConfig;
-        this.pipeInputConfig = pipeInputConfig;
+        this.pipeOutputConfigSupplier = pipeOutputConfigSupplier;
+        this.pipeInputConfigSupplier = pipeInputConfigSupplier;
         this.errorHandler = errorHandler;
         this.openInNewThread = openInNewThread;
     }
@@ -95,8 +95,8 @@ public class BidirectionalPacketServer implements PacketServer {
 
     @Override
     public RWPipeRegistrationKey registerPipe(SocketChannel pipeChannel, StandardServerClient client, ServerClientPipe pipe) throws IOException {
-        PacketWriter outputWriter = new PacketWriter(pipeChannel, selector, pipeOutputConfig);
-        PacketReader inputReader = new PacketReader(pipeChannel, pipeInputConfig);
+        PacketWriter outputWriter = new PacketWriter(pipeChannel, selector, pipeOutputConfigSupplier.get(client));
+        PacketReader inputReader = new PacketReader(pipeChannel, pipeInputConfigSupplier.get(client));
 
         pipeChannel.configureBlocking(false);
         SelectionKey channelSelKey;
