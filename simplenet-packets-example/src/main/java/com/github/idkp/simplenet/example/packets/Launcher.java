@@ -44,7 +44,7 @@ public final class Launcher {
         packetPipeInputCfg.addPacketListener("greetings", "", System.out::println);
 
         BidirectionalPacketServer packetServer = new BidirectionalPacketServer(
-                packetPipeOutputCfg, packetPipeInputCfg, true);
+                __ -> packetPipeOutputCfg, __ -> packetPipeInputCfg, true);
 
         Server server = StandardServer.create((client, pipeChannel) -> {
             BidirectionalPacketServerClientPipe packetPipe = new BidirectionalPacketServerClientPipe(packetServer);
