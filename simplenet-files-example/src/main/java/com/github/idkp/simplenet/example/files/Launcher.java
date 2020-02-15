@@ -52,9 +52,9 @@ public final class Launcher {
     }
 
     private static void startServer() throws IOException {
-        FileServer fileServer = new FileServer(DESTINATION_DIR, 8192L, true);
+        FileServer fileServer = new FileServer(true);
         Server server = StandardServer.create((client, pipeChannel) -> {
-            FileServerClientPipe filePipe = new FileServerClientPipe(fileServer);
+            FileServerClientPipe filePipe = new FileServerClientPipe(fileServer, DESTINATION_DIR, 8192L);
 
             try {
                 client.getPipeline().openPipe("file", filePipe, pipeChannel);

@@ -11,30 +11,22 @@ import java.nio.file.Path;
 import java.util.Iterator;
 
 public class FileServer implements Closeable {
-    private final Path destinationDir;
-    private final long bufferSize;
     private final FileServerErrorHandler errorHandler;
     private final boolean openInNewThread;
 
     private Selector selector;
     private Thread selectorThread;
 
-    public FileServer(Path destinationDir, long bufferSize, boolean openInNewThread) {
-        this(destinationDir, bufferSize, new ClosingFileServerErrorHandler(), openInNewThread);
+    public FileServer(boolean openInNewThread) {
+        this(new ClosingFileServerErrorHandler(), openInNewThread);
     }
 
-    public FileServer(Path destinationDir, long bufferSize, FileServerErrorHandler errorHandler, boolean openInNewThread) {
-        this.destinationDir = destinationDir;
-        this.bufferSize = bufferSize;
+    public FileServer(FileServerErrorHandler errorHandler, boolean openInNewThread) {
         this.errorHandler = errorHandler;
         this.openInNewThread = openInNewThread;
     }
 
     public void open() throws IOException {
-        if (Files.exists(destinationDir) && !Files.isDirectory(destinationDir)) {
-            throw new NotDirectoryException(destinationDir.toString());
-        }
-
         selector = Selector.open();
 
         if (openInNewThread) {
@@ -78,7 +70,11 @@ public class FileServer implements Closeable {
         }
     }
 
-    public void registerPipe(SocketChannel pipeChannel) throws IOException {
+    public void registerPipe(SocketChannel pipeChannel, Path destinationDir, long bufferSize) throws IOException {
+        if (Files.exists(destinationDir) && !Files.isDirectory(destinationDir)) {
+            throw new NotDirectoryException(destinationDir.toString());
+        }
+
         pipeChannel.configureBlocking(false);
 
         synchronized (this) {
