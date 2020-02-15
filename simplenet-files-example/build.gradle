@@ -1,0 +1,21 @@
+plugins {
+    id 'java'
+}
+
+group 'com.github.idkp.simplenet'
+
+sourceCompatibility = 1.8
+
+dependencies {
+    compile project(':simplenet')
+}
+
+jar {
+    manifest {
+        attributes "Main-Class": "com.github.idkp.simplenet.example.files.Launcher"
+    }
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}

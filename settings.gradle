@@ -1,4 +1,6 @@
 rootProject.name = 'simplenet'
 
-include 'simplenet-example'
+include 'simplenet-packets-example'
 include 'simplenet'
+include 'simplenet-files-example'
+

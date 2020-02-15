@@ -2,236 +2,102 @@ package com.github.idkp.simplenet;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.function.Consumer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
-public class StandardServer implements Server {
-    private static final Logger LOGGER = Logger.getLogger(StandardServer.class.getName());
+public class StandardServer extends StandardServerBase {
+    private final Map<ClientID, ServerClient> clients = new HashMap<>();
+    private final ServerErrorHandler errorHandler;
+    private final PipeOpenRequestListener pipeOpenRequestListener;
 
-    private final ConnectionReviewer connectionReviewer;
-    private final Map<SocketAddress, ActiveConnection> activeConnections = new HashMap<>();
-    private ServerErrorHandler errorHandler;
-    private Consumer<ConnectionAttemptResult> connectionAcceptAttemptHandler;
-
-    private Selector selector;
+    private final ClientIDRetriever clientIDRetriever = new ClientIDRetriever();
     private ServerSocketChannel channel;
-    private Thread selectorSelectThread;
+    private Thread clientAcceptThread;
     private int bindingPort;
 
     private StandardServer(Builder builder) {
-        this.connectionReviewer = builder.connectionReviewer;
         this.errorHandler = builder.errorHandler;
-        this.connectionAcceptAttemptHandler = builder.connectionAcceptAttemptHandler;
+        this.pipeOpenRequestListener = builder.pipeOpenRequestListener;
     }
 
-    public static StandardServer create(ConnectionReviewer connectionReviewer) {
+    public static StandardServer create(PipeOpenRequestListener pipeOpenRequestListener) {
         return new Builder()
-                .withConnectionReviewer(connectionReviewer)
+                .withPipeOpenRequestListener(pipeOpenRequestListener)
                 .build();
     }
 
     @Override
     public int getPort() {
         if (!this.isBound()) {
-            throw new IllegalStateException("Server is not bound.");
+            throw new IllegalStateException("not bound");
         }
 
         return this.bindingPort;
     }
 
     @Override
-    public ConnectionReviewer getConnectionReviewer() {
-        return connectionReviewer;
-    }
-
-    @Override
     public boolean bind(int port) throws IOException {
         if (this.isBound()) {
-            throw new IllegalStateException("Server already bound.");
+            throw new IllegalStateException("already bound");
         }
 
         try {
             this.channel = ServerSocketChannel.open();
 
-            this.channel.configureBlocking(false);
-
-            this.selector = Selector.open();
-
             this.channel.bind(new InetSocketAddress(port));
-            this.channel.register(this.selector, SelectionKey.OP_ACCEPT);
         } catch (IOException e) {
             this.channel = null;
-
             throw e;
         }
 
         this.bindingPort = port;
-
-        this.selectorSelectThread = new Thread(() -> {
-            while (!Thread.currentThread().isInterrupted() && this.isBound()) {
+        this.clientAcceptThread = new Thread(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
                 try {
-                    selector.select();
+                    accept(this.channel);
                 } catch (IOException e) {
-                    errorHandler.handle("sel", this, e);
-
-                    return;
-                }
-
-                Iterator<SelectionKey> selectedKeys = selector.selectedKeys().iterator();
-
-                while (selectedKeys.hasNext()) {
-                    SelectionKey key = selectedKeys.next();
-
-                    if (key.isValid()) {
-                        if (key.isAcceptable()) {
-                            processAcceptableKey();
-                        } else if (key.isWritable()) {
-                            processWritableKey(key);
-                        } else if (key.isReadable()) {
-                            processReadableKey(key);
-                        }
-                    }
-
-                    selectedKeys.remove();
+                    errorHandler.handle(this, "received", e);
                 }
             }
         }, "Server Client Accept Thread");
 
-        this.selectorSelectThread.start();
-
-        LOGGER.log(Level.INFO, "{0} initialized.", this.toString());
+        this.clientAcceptThread.start();
 
         return true;
     }
 
-    private void processAcceptableKey() {
-        ConnectionAttemptResult result = this.connectionReviewer.accept(this);
-        ConnectionAttemptResult.Type resType = result.getType();
+    private void accept(ServerSocketChannel socketChannel) throws IOException {
+        SocketChannel pipeChannel = socketChannel.accept();
+        ClientID id = clientIDRetriever.retrieve(pipeChannel);
+        ServerClient client = clients.computeIfAbsent(
+                id, __ -> new StandardServerClient(this, id));
 
-        if (resType == ConnectionAttemptResult.Type.OK) {
-            ActiveConnection connection = ((OKConnectionAttemptResult) result).getConnection();
-
-            if (connection != null) {
-                try {
-                    activeConnections.put(
-                            connection.getChannel().getRemoteAddress(),
-                            connection);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        } else if (resType == ConnectionAttemptResult.Type.FAILED) {
-            errorHandler.handle("accept", this, ((FailedConnectionAttemptResult) result).getException());
-        }
-
-        if (connectionAcceptAttemptHandler != null) {
-            connectionAcceptAttemptHandler.accept(result);
-        }
-    }
-
-    private void processWritableKey(SelectionKey key) {
-        ServerSelectorKeyData keyData = (ServerSelectorKeyData) key.attachment();
-        PacketWriter writer = keyData.packetWriter;
-
-        try {
-            writer.flush();
-        } catch (IOException e) {
-            errorHandler.handle("write", this, keyData.conn, e);
-        }
-    }
-
-    private void processReadableKey(SelectionKey key) {
-        ServerSelectorKeyData keyData = (ServerSelectorKeyData) key.attachment();
-        PacketReader packetReader = keyData.packetReader;
-
-        try {
-            if (packetReader.read() == ReadResult.EOF) {
-                errorHandler.handle("eof", this, keyData.conn);
-            }
-        } catch (IOException e) {
-            errorHandler.handle("read", this, keyData.conn, e);
+        if (pipeOpenRequestListener != null) {
+            pipeOpenRequestListener.received(client, pipeChannel);
         }
     }
 
     @Override
-    public void closeConnection(ActiveConnection connection) {
-        SelectionKey key = connection.getChannel().keyFor(selector);
-
-        if (key != null) {
-            try {
-                connection.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            key.cancel();
-            activeConnections.values().remove(connection);
-        }
-    }
-
-    @Override
-    public Selector getSelector() {
-        return selector;
-    }
-
-    @Override
-    public ServerSocketChannel getChannel() {
-        return channel;
-    }
-
-    @Override
-    public void unbind() throws IOException {
-        if (this.channel == null) {
-            return;
-        }
-
-        this.selectorSelectThread.interrupt();
-        this.selectorSelectThread = null;
-
-        try {
-            this.selector.close();
-        } finally {
-            try {
-                this.channel.close();
-            } finally {
-                this.channel = null;
-            }
-        }
-    }
-
-    @Override
-    public synchronized boolean isBound() {
+    public synchronized final boolean isBound() {
         return this.channel != null;
     }
 
     @Override
-    public ActiveConnection getConnection(SocketAddress address) {
-        return activeConnections.get(address);
-    }
-
-    @Override
-    public void setConnectionAcceptAttemptHandler(Consumer<ConnectionAttemptResult> handler) {
-        connectionAcceptAttemptHandler = handler;
-    }
-
-    @Override
-    public void setErrorHandler(ServerErrorHandler handler) {
-        errorHandler = handler;
+    public ServerClient getClient(ClientID id) {
+        return clients.get(id);
     }
 
     @Override
     public void close() throws IOException {
-        this.unbind();
+        this.clientAcceptThread.interrupt();
 
-        LOGGER.log(Level.INFO, "Server {0} closed.", this.toString());
+        try {
+            this.channel.close();
+        } finally {
+            this.channel = null;
+        }
     }
 
     @Override
@@ -241,10 +107,6 @@ public class StandardServer implements Server {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-
         if (obj == this) {
             return true;
         }
@@ -263,16 +125,14 @@ public class StandardServer implements Server {
         return 31 + this.bindingPort;
     }
 
+    @Override
+    protected void unregisterClient(ServerClient client) {
+        clients.values().remove(client);
+    }
+
     public static class Builder {
-        private ConnectionReviewer connectionReviewer;
         private ServerErrorHandler errorHandler;
-        private Consumer<ConnectionAttemptResult> connectionAcceptAttemptHandler;
-
-        public Builder withConnectionReviewer(ConnectionReviewer connectionReviewer) {
-            this.connectionReviewer = connectionReviewer;
-
-            return this;
-        }
+        private PipeOpenRequestListener pipeOpenRequestListener;
 
         public Builder withErrorHandler(ServerErrorHandler errorHandler) {
             this.errorHandler = errorHandler;
@@ -280,19 +140,19 @@ public class StandardServer implements Server {
             return this;
         }
 
-        public Builder withConnectionAcceptAttemptHandler(Consumer<ConnectionAttemptResult> connectionAcceptAttemptHandler) {
-            this.connectionAcceptAttemptHandler = connectionAcceptAttemptHandler;
+        public Builder withPipeOpenRequestListener(PipeOpenRequestListener acceptListener) {
+            this.pipeOpenRequestListener = acceptListener;
 
             return this;
         }
 
         public StandardServer build() {
-            if (connectionReviewer == null) {
-                throw new IllegalStateException("connectionReviewer == null");
+            if (pipeOpenRequestListener == null) {
+                throw new IllegalStateException("pipeOpenRequestListener == null");
             }
 
             if (errorHandler == null) {
-                errorHandler = new ClosingServerErrorHandler(false);
+                errorHandler = new ClosingServerErrorHandler();
             }
 
             return new StandardServer(this);
