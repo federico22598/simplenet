@@ -11,13 +11,13 @@ public abstract class StandardServerClientPipelineBase implements ServerClientPi
 
     @Override
     public final void closePipe(ServerClientPipe pipe) throws IOException {
-        getServer().clientPipeClosed(getClient());
+        getServer().clientPipeClosing(getClient());
         closePipe0(pipe);
     }
 
     @Override
     public final void close() throws IOException {
-        getServer().clientPipelineClosed(getClient());
+        getServer().clientPipelineClosing(getClient());
         close0();
     }
 }

@@ -2,6 +2,7 @@ package com.github.idkp.simplenet.packet;
 
 import com.github.idkp.simplenet.ClientPipe;
 import com.github.idkp.simplenet.ClientPipeErrorHandler;
+import com.github.idkp.simplenet.ClosingClientPipeErrorHandler;
 
 import java.io.IOException;
 import java.nio.channels.ClosedSelectorException;
@@ -22,10 +23,10 @@ public class BidirectionalPacketClientPipe implements ClientPipe {
     private PacketWriter packetWriter;
     private PacketReader packetReader;
 
-    public BidirectionalPacketClientPipe(ClientPipeErrorHandler errorHandler,
-                                         PacketPipeInputConfiguration inputConfig,
-                                         PacketPipeOutputConfiguration outputConfig) {
-        this(errorHandler, inputConfig, outputConfig, true);
+    public BidirectionalPacketClientPipe(PacketPipeInputConfiguration inputConfig,
+                                         PacketPipeOutputConfiguration outputConfig,
+                                         boolean useNewThread) {
+        this(new ClosingClientPipeErrorHandler(), inputConfig, outputConfig, useNewThread);
     }
 
     public BidirectionalPacketClientPipe(ClientPipeErrorHandler errorHandler,

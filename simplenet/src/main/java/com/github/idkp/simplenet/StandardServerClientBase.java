@@ -9,7 +9,7 @@ public abstract class StandardServerClientBase implements ServerClient {
 
     @Override
     public final void close() throws IOException {
-        getServer().clientClosed(this);
+        getServer().clientClosing(this);
         close0();
     }
 }

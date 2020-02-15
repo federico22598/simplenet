@@ -1,7 +1,5 @@
 package com.github.idkp.simplenet.packet;
 
-import com.github.idkp.simplenet.RepeatingBufferWriter;
-
 import java.nio.ByteBuffer;
 
 public final class PacketBufferWriter {
