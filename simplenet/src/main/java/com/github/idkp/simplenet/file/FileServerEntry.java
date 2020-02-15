@@ -11,16 +11,16 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
 public class FileServerEntry implements Closeable {
-    private final SocketChannel channel;
-    private final Path destinationDir;
-    private final long bufferSize;
+    protected final SocketChannel channel;
+    protected final Path destinationDir;
+    protected final long bufferSize;
 
-    private FileChannel fileChannel;
-    private ByteBuffer fileInfoDataBuf = ByteBuffer.allocateDirect(8);
-    private ByteBuffer fileInfoBuf = null;
-    private int fileNameLen = 0;
-    private int fileSize = 0;
-    private int fileBytesRead = 0;
+    protected FileChannel fileChannel;
+    protected ByteBuffer fileInfoDataBuf = ByteBuffer.allocateDirect(8);
+    protected ByteBuffer fileInfoBuf = null;
+    protected int fileNameLen = 0;
+    protected int fileSize = 0;
+    protected int fileBytesRead = 0;
 
     public FileServerEntry(SocketChannel channel, Path destinationDir, long bufferSize) {
         this.channel = channel;
