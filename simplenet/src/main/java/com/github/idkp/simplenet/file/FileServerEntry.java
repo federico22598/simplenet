@@ -11,8 +11,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
 public class FileServerEntry implements Closeable {
-    protected final Path destinationDir;
-    protected final long bufferSize;
+    protected Path destinationDir;
+    protected long bufferSize;
 
     protected SocketChannel socketChannel;
     protected FileChannel fileChannel;
@@ -102,5 +102,13 @@ public class FileServerEntry implements Closeable {
                 fileChannel.close();
             }
         }
+    }
+
+    public void setDestinationDir(Path dir) {
+        destinationDir = dir;
+    }
+
+    public void setBufferSize(long bufferSize) {
+        this.bufferSize = bufferSize;
     }
 }

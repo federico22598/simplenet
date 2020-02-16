@@ -26,4 +26,8 @@ public class FileServerClientPipe implements ServerClientPipe {
     public void close() throws IOException {
         socketChannel.close();
     }
+
+    public FileServerEntry getEntry() {
+        return fileServerEntry;
+    }
 }
