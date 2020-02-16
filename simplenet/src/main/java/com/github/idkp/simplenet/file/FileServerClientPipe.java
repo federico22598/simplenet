@@ -23,7 +23,7 @@ public class FileServerClientPipe implements ServerClientPipe {
     @Override
     public void open(SocketChannel socketChannel, StandardServerClient client) throws IOException {
         this.socketChannel = socketChannel;
-        fileServer.registerPipe(socketChannel, destinationDir, bufferSize);
+        fileServer.registerEntry(socketChannel, new FileServerEntry(socketChannel, destinationDir, bufferSize));
     }
 
     @Override

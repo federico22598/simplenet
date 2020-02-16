@@ -70,20 +70,12 @@ public class FileServer implements Closeable {
         }
     }
 
-    protected FileServerEntry createEntry(SocketChannel pipeChannel, Path destinationDir, long bufferSize) {
-        return new FileServerEntry(pipeChannel, destinationDir, bufferSize);
-    }
-
-    public void registerPipe(SocketChannel pipeChannel, Path destinationDir, long bufferSize) throws IOException {
-        if (Files.exists(destinationDir) && !Files.isDirectory(destinationDir)) {
-            throw new NotDirectoryException(destinationDir.toString());
-        }
-
+    public void registerEntry(SocketChannel pipeChannel, FileServerEntry entry) throws IOException {
         pipeChannel.configureBlocking(false);
 
         synchronized (this) {
             selector.wakeup();
-            pipeChannel.register(selector, SelectionKey.OP_READ, createEntry(pipeChannel, destinationDir, bufferSize));
+            pipeChannel.register(selector, SelectionKey.OP_READ, entry);
         }
     }
 
