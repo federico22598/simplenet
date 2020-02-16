@@ -1,5 +1,6 @@
 package com.github.idkp.simplenet.file;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -9,10 +10,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
-public class FileServerEntry {
+public class FileServerEntry implements Closeable {
     protected final Path destinationDir;
     protected final long bufferSize;
 
+    protected SocketChannel socketChannel;
     protected FileChannel fileChannel;
     protected ByteBuffer fileInfoDataBuf = ByteBuffer.allocateDirect(8);
     protected ByteBuffer fileInfoBuf = null;
@@ -27,8 +29,10 @@ public class FileServerEntry {
 
     public void transfer(SocketChannel socketChannel) throws IOException {
         if (fileInfoBuf == null) {
+            this.socketChannel = socketChannel;
+
             if (socketChannel.read(fileInfoDataBuf) == -1) {
-                close(socketChannel);
+                close();
                 return;
             }
 
@@ -43,7 +47,7 @@ public class FileServerEntry {
             fileInfoDataBuf.clear();
         } else if (fileChannel == null) {
             if (socketChannel.read(fileInfoBuf) == -1) {
-                close(socketChannel);
+                close();
                 return;
             }
 
@@ -88,7 +92,8 @@ public class FileServerEntry {
         }
     }
 
-    private void close(SocketChannel socketChannel) throws IOException {
+    @Override
+    public void close() throws IOException {
         try {
             socketChannel.close();
         } finally {
