@@ -1,6 +1,5 @@
 package com.github.idkp.simplenet.file;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -10,8 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
-public class FileServerEntry implements Closeable {
-    protected final SocketChannel channel;
+public class FileServerEntry {
     protected final Path destinationDir;
     protected final long bufferSize;
 
@@ -22,16 +20,15 @@ public class FileServerEntry implements Closeable {
     protected int fileSize = 0;
     protected int fileBytesRead = 0;
 
-    public FileServerEntry(SocketChannel channel, Path destinationDir, long bufferSize) {
-        this.channel = channel;
+    public FileServerEntry(Path destinationDir, long bufferSize) {
         this.destinationDir = destinationDir;
         this.bufferSize = bufferSize;
     }
 
-    public void transfer() throws IOException {
+    public void transfer(SocketChannel socketChannel) throws IOException {
         if (fileInfoBuf == null) {
-            if (channel.read(fileInfoDataBuf) == -1) {
-                close();
+            if (socketChannel.read(fileInfoDataBuf) == -1) {
+                close(socketChannel);
                 return;
             }
 
@@ -45,8 +42,8 @@ public class FileServerEntry implements Closeable {
             fileInfoBuf = ByteBuffer.allocate(fileNameLen);
             fileInfoDataBuf.clear();
         } else if (fileChannel == null) {
-            if (channel.read(fileInfoBuf) == -1) {
-                close();
+            if (socketChannel.read(fileInfoBuf) == -1) {
+                close(socketChannel);
                 return;
             }
 
@@ -75,7 +72,7 @@ public class FileServerEntry implements Closeable {
             fileInfoBuf.clear();
         } else {
             long bytesReadNow;
-            if ((bytesReadNow = fileChannel.transferFrom(channel, fileBytesRead, Math.min(bufferSize, fileSize - fileBytesRead))) != -1) {
+            if ((bytesReadNow = fileChannel.transferFrom(socketChannel, fileBytesRead, Math.min(bufferSize, fileSize - fileBytesRead))) != -1) {
                 fileBytesRead += bytesReadNow;
 
                 if (fileBytesRead != fileSize) {
@@ -91,10 +88,9 @@ public class FileServerEntry implements Closeable {
         }
     }
 
-    @Override
-    public void close() throws IOException {
+    private void close(SocketChannel socketChannel) throws IOException {
         try {
-            channel.close();
+            socketChannel.close();
         } finally {
             if (fileChannel != null) {
                 fileChannel.force(true);

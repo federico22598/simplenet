@@ -7,6 +7,7 @@ import com.github.idkp.simplenet.StandardServer;
 import com.github.idkp.simplenet.file.FileClientPipe;
 import com.github.idkp.simplenet.file.FileServer;
 import com.github.idkp.simplenet.file.FileServerClientPipe;
+import com.github.idkp.simplenet.file.FileServerEntry;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -54,7 +55,7 @@ public final class Launcher {
     private static void startServer() throws IOException {
         FileServer fileServer = new FileServer(true);
         Server server = StandardServer.create((client, pipeChannel) -> {
-            FileServerClientPipe filePipe = new FileServerClientPipe(fileServer, DESTINATION_DIR, 8192L);
+            FileServerClientPipe filePipe = new FileServerClientPipe(fileServer, new FileServerEntry(DESTINATION_DIR, 8192L));
 
             try {
                 client.getPipeline().openPipe("file", filePipe, pipeChannel);

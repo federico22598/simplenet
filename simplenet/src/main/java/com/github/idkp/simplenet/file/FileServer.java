@@ -5,9 +5,6 @@ import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.nio.file.Files;
-import java.nio.file.NotDirectoryException;
-import java.nio.file.Path;
 import java.util.Iterator;
 
 public class FileServer implements Closeable {
@@ -60,7 +57,7 @@ public class FileServer implements Closeable {
                         FileServerEntry entry = (FileServerEntry) key.attachment();
 
                         try {
-                            entry.transfer();
+                            entry.transfer((SocketChannel) key.channel());
                         } catch (IOException e) {
                             errorHandler.handle(this, "retrieve", e, entry);
                         }
