@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -76,7 +77,7 @@ public class FileServerEntry implements Closeable {
             fileInfoBuf.clear();
         } else {
             long bytesReadNow;
-            if ((bytesReadNow = fileChannel.transferFrom(socketChannel, fileBytesRead, Math.min(bufferSize, fileSize - fileBytesRead))) != -1) {
+            if ((bytesReadNow = transfer()) != -1) {
                 fileBytesRead += bytesReadNow;
 
                 if (fileBytesRead != fileSize) {
@@ -90,6 +91,10 @@ public class FileServerEntry implements Closeable {
             fileInfoBuf = null;
             fileBytesRead = 0;
         }
+    }
+
+    protected long transfer() throws IOException {
+        return fileChannel.transferFrom(socketChannel, fileBytesRead, Math.min(bufferSize, fileSize - fileBytesRead));
     }
 
     @Override
