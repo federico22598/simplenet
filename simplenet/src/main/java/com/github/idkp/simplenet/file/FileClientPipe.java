@@ -12,12 +12,10 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
 public class FileClientPipe implements ClientPipe {
-    private final long bufferSize;
     private final ByteBuffer fileInfoDataBuf;
     private SocketChannel socketChannel;
 
-    public FileClientPipe(long bufferSize) {
-        this.bufferSize = bufferSize;
+    public FileClientPipe() {
         this.fileInfoDataBuf = ByteBuffer.allocateDirect(8);
     }
 
@@ -27,11 +25,11 @@ public class FileClientPipe implements ClientPipe {
         this.socketChannel = socketChannel;
     }
 
-    public void write(Path file) throws IOException {
-        write(file, file.getFileName().toString());
+    public void write(Path file, long bufferSize) throws IOException {
+        write(file, file.getFileName().toString(), bufferSize);
     }
 
-    public void write(Path file, String fileName) throws IOException {
+    public void write(Path file, String fileName, long bufferSize) throws IOException {
         if (Files.isDirectory(file)) {
             throw new NotRegularFileException(file.toString());
         }

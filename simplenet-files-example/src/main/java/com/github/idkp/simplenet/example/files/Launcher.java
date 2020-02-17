@@ -31,13 +31,13 @@ public final class Launcher {
     private static void startClient() throws IOException {
         SocketChannel serverSocketChannel = SocketChannel.open();
         ClientPipeline pipeline = new StandardClientPipeline();
-        FileClientPipe filePipe = new FileClientPipe(8192L);
+        FileClientPipe filePipe = new FileClientPipe();
 
         pipeline.openPipe(filePipe, serverSocketChannel, new InetSocketAddress(InetAddress.getLocalHost(), SERVER_PORT));
 
         Path filesToDownloadDir = Paths.get("simplenet-files-example/todownload");
 
-        filePipe.write(filesToDownloadDir.resolve("loremipsum.txt"));
+        filePipe.write(filesToDownloadDir.resolve("loremipsum.txt"), 8192L);
 
         int rootDirPathLen = filesToDownloadDir.toString().length() + FileSystems.getDefault().getSeparator().length();
 
@@ -46,7 +46,7 @@ public final class Launcher {
             String filePath = file.toString();
             String relativeFilePath = filePath.substring(rootDirPathLen);
 
-            filePipe.write(file, relativeFilePath);
+            filePipe.write(file, relativeFilePath, 8192L);
         }
 
         filePipe.close();

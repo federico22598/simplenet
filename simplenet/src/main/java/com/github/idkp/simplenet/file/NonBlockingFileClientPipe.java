@@ -8,12 +8,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
 public class NonBlockingFileClientPipe extends FileClientPipe {
-    private final BlockingQueue<FileData> fileQueue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<FileEntry> entryQueue  = new LinkedBlockingQueue<>();
     private final Consumer<IOException> writeExceptionHandler;
     private Thread flushThread;
 
-    public NonBlockingFileClientPipe(long bufferSize, Consumer<IOException> writeExceptionHandler) {
-        super(bufferSize);
+    public NonBlockingFileClientPipe(Consumer<IOException> writeExceptionHandler) {
+        super();
         this.writeExceptionHandler = writeExceptionHandler;
     }
 
@@ -23,17 +23,17 @@ public class NonBlockingFileClientPipe extends FileClientPipe {
 
         flushThread = new Thread(() -> {
             while (!Thread.currentThread().isInterrupted()) {
-                FileData fileData;
+                FileEntry fileEntry;
 
                 try {
-                    fileData = fileQueue.take();
+                    fileEntry = entryQueue.take();
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     return;
                 }
 
                 try {
-                    super.write(fileData.file, fileData.fileName);
+                    super.write(fileEntry.file, fileEntry.fileName, fileEntry.bufferSize);
                 } catch (IOException e) {
                     writeExceptionHandler.accept(e);
                 }
@@ -44,8 +44,8 @@ public class NonBlockingFileClientPipe extends FileClientPipe {
     }
 
     @Override
-    public void write(Path file, String fileName) {
-        fileQueue.add(new FileData(fileName, file));
+    public void write(Path file, String fileName, long bufferSize) {
+        entryQueue.add(new FileEntry(fileName, file, bufferSize));
     }
 
     @Override
@@ -54,13 +54,15 @@ public class NonBlockingFileClientPipe extends FileClientPipe {
         super.close();
     }
 
-    private static class FileData {
+    private static class FileEntry {
         final String fileName;
         final Path file;
+        final long bufferSize;
 
-        private FileData(String fileName, Path file) {
+        private FileEntry(String fileName, Path file, long bufferSize) {
             this.fileName = fileName;
             this.file = file;
+            this.bufferSize = bufferSize;
         }
     }
 }
