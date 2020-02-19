@@ -116,4 +116,12 @@ public class FileServerEntry implements Closeable {
     public void setBufferSize(long bufferSize) {
         this.bufferSize = bufferSize;
     }
+
+    public Path getDestinationDir() {
+        return destinationDir;
+    }
+
+    public long getBufferSize() {
+        return bufferSize;
+    }
 }

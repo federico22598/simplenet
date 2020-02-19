@@ -2,16 +2,16 @@ package com.github.idkp.simplenet.packet;
 
 import java.nio.ByteBuffer;
 
-public final class PacketBufWriteData {
-    public final ByteBuffer buf;
-    public final RepeatingBufferWriter repeatingBufWriter;
+final class PacketBufWriteData {
+    final ByteBuffer buf;
+    final RepeatingBufferWriter repeatingBufWriter;
 
-    public PacketBufWriteData(ByteBuffer buf, RepeatingBufferWriter repeatingBufWriter) {
+    PacketBufWriteData(ByteBuffer buf, RepeatingBufferWriter repeatingBufWriter) {
         this.buf = buf;
         this.repeatingBufWriter = repeatingBufWriter;
     }
 
-    public PacketBufWriteData(ByteBuffer buffer) {
+    PacketBufWriteData(ByteBuffer buffer) {
         this(buffer, null);
     }
 }
